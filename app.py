@@ -90,45 +90,24 @@ st.markdown("""
         color: #000;
     }
 
-    /* --- METRIC DECK --- */
-    .metric-container {
-        background-color: #111;
-        border: 1px solid #222;
-        padding: 2rem;
-        border-left: 4px solid #444;
-        height: 100%;
-        transition: all 0.2s;
-    }
-    
-    .metric-container:hover {
-        border-left: 4px solid #FFC107;
-        background-color: #161616;
-        transform: translateY(-2px);
-    }
-
-    .metric-label {
+    /* --- METRICS (Native Streamlit Styling Override) --- */
+    [data-testid="stMetricLabel"] {
         color: #D1D1D1;
         font-size: 0.9rem;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        font-weight: 700;
-        margin-bottom: 0.75rem;
-    }
-
-    .metric-value {
-        color: #FFF;
-        font-size: 3rem;
-        font-weight: 900;
-        margin-bottom: 0.25rem;
-        letter-spacing: -1px;
-        line-height: 1;
-    }
-
-    .metric-sub {
-        color: #FFC107;
-        font-size: 0.95rem;
+        letter-spacing: 1px;
         font-weight: 600;
-        margin-top: 5px;
+    }
+    
+    [data-testid="stMetricValue"] {
+        color: #FFF;
+        font-size: 2.5rem;
+        font-weight: 900;
+    }
+
+    [data-testid="stMetricDelta"] {
+        font-weight: 600;
+        font-size: 0.9rem;
     }
 
     /* --- CHART HEADERS --- */
@@ -150,6 +129,7 @@ st.markdown("""
         margin-bottom: 2rem;
         margin-left: 28px;
         font-weight: 400;
+        opacity: 0.8;
     }
 
     /* --- DATAFRAME --- */
@@ -213,28 +193,46 @@ positive_pct = (len(df[df['sentiment'] == 'Positive']) / total_videos * 100)
 negative_pct = (len(df[df['sentiment'] == 'Negative']) / total_videos * 100)
 top_topic = df['topic'].mode()[0] if not df['topic'].empty else "N/A"
 
-# --- 2. THE INSIGHT DECK ---
-c1, c2, c3, c4 = st.columns(4)
+# --- 2. THE PUBLIC PULSE (METRICS) ---
+st.markdown("### 📡 THE PUBLIC PULSE")
+col1, col2, col3, col4 = st.columns(4)
 
-def kanto_metric(label, value, sub):
-    return f"""
-    <div class="metric-container">
-        <div class="metric-label">{label}</div>
-        <div class="metric-value">{value}</div>
-        <div class="metric-sub">{sub}</div>
-    </div>
-    """
+with col1:
+    st.metric(
+        label="Conversations Audited",
+        value=total_videos,
+        help="Total number of unique Tikok videos analyzed in the last 24 hours."
+    )
 
-with c1: st.markdown(kanto_metric("DATA POINTS", total_videos, "Conversations Audited"), unsafe_allow_html=True)
-with c2: st.markdown(kanto_metric("ALIGNMENT SCORE", f"{positive_pct:.1f}%", "Positive Resonance"), unsafe_allow_html=True)
-with c3: st.markdown(kanto_metric("FRICTION INDEX", f"{negative_pct:.1f}%", "Critical Pushback"), unsafe_allow_html=True)
-with c4: st.markdown(kanto_metric("PRIMARY VECTOR", top_topic, "High-Impact Theme"), unsafe_allow_html=True)
+with col2:
+    st.metric(
+        label="Public Consensus",
+        value=f"{positive_pct:.1f}%",
+        delta="Positive Resonance",
+        help="The percentage of voices that actively support or agree with the current narrative."
+    )
 
-st.markdown("<br>", unsafe_allow_html=True)
+with col3:
+    st.metric(
+        label="Resistance Level",
+        value=f"{negative_pct:.1f}%",
+        delta="-Critical Pushback",
+        delta_color="inverse", # Makes red mean "warning"
+        help="The intensity of disagreement. A score >50% indicates significant public anger."
+    )
 
-# --- 3. SENTIMENT APPROVAL RATING (NYT STYLE) ---
-st.markdown("### PUBLIC SENTIMENT RATING")
-st.markdown("<div class='chart-caption'>Daily Approval vs. Disapproval trends. (NYT-Style Analysis)</div>", unsafe_allow_html=True)
+with col4:
+    st.metric(
+        label="Dominant Conversation",
+        value=top_topic,
+        help="The #1 topic driving the most engagement right now based on keyword velocity."
+    )
+
+st.markdown("---")
+
+# --- 3. TRAJECTORY OF TRUST (TRENDS) ---
+st.markdown("### 📈 THE TRAJECTORY OF TRUST")
+st.markdown("<div class='chart-caption'>Tracking how public sentiment shifts hour-by-hour in response to real-world events.</div>", unsafe_allow_html=True)
 
 if not df.empty:
     # 1. Transform Data: Calculate % of sentiment per day
@@ -265,7 +263,6 @@ if not df.empty:
             ))
             
             # Add Smoothed Line (Trend Look)
-            # Simple smooth line connecting points
             fig_trend.add_trace(go.Scatter(
                 x=subset['date'], 
                 y=subset['percentage'],
@@ -306,15 +303,16 @@ if not df.empty:
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 
-# --- 4. THE VISUAL NARRATIVE ---
+# --- 4. VISUAL NARRATIVE (PIE & HEATMAP) ---
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.markdown("### ECHO CHAMBER AUDIT")
-    st.markdown("<div class='chart-caption'>Are we hearing all voices, or just the loudest ones?</div>", unsafe_allow_html=True)
+    st.markdown("### 🎤 WHO IS DOMINATING THE MICROPHONE?")
+    st.markdown("<div class='chart-caption'>Breakdown of the personas driving the conversation.</div>", unsafe_allow_html=True)
+    
     if 'persona' in df.columns:
         fig_persona = px.pie(df, names='persona', hole=0.6, 
-                            color_discrete_sequence=['#FFC107', '#FFFFFF', '#444444', '#888888'])
+                             color_discrete_sequence=['#FFC107', '#FFFFFF', '#444444', '#888888'])
         fig_persona.update_layout(
             paper_bgcolor="rgba(0,0,0,0)", 
             plot_bgcolor="rgba(0,0,0,0)", 
@@ -326,10 +324,14 @@ with col1:
         )
         fig_persona.update_traces(textinfo='percent', textfont_size=16)
         st.plotly_chart(fig_persona, use_container_width=True)
+        
+        # Storytelling Element
+        st.info("💡 **Insight:** If 'Digital Cynic' is >50%, the feed is dominated by satire/memes. Policy announcements struggle to be taken seriously here.")
 
 with col2:
-    st.markdown("### SENTIMENT HEATMAP")
+    st.markdown("### 🔥 TOPIC TOXICITY SCANNER")
     st.markdown("<div class='chart-caption'>Identifying where policy meets resistance (Red) or approval (Yellow).</div>", unsafe_allow_html=True)
+    
     if 'topic' in df.columns:
         topic_counts = df.groupby(['topic', 'sentiment']).size().reset_index(name='count')
         fig_topic = px.bar(topic_counts, x='count', y='topic', color='sentiment', orientation='h',
@@ -343,11 +345,13 @@ with col2:
                 showgrid=True, 
                 gridcolor='#333', 
                 tickfont=dict(size=14, color="#FFFFFF"),
-                title_font=dict(size=16, color="#E0E0E0")
+                title_font=dict(size=16, color="#E0E0E0"),
+                title="Volume of Noise"
             ), 
             yaxis=dict(
                 showgrid=False, 
-                tickfont=dict(size=15, color="#FFFFFF", weight="bold")
+                tickfont=dict(size=15, color="#FFFFFF", weight="bold"),
+                title=None
             ),
             legend=dict(
                 font=dict(size=14, color="#E0E0E0"),
@@ -356,6 +360,9 @@ with col2:
             margin=dict(t=30, b=20, l=0, r=0)
         )
         st.plotly_chart(fig_topic, use_container_width=True)
+        
+        # Storytelling Element
+        st.caption("🔴 **Red Zones:** High-friction topics driving anger (Risky).  \n🟡 **Yellow Zones:** High-alignment topics driving praise (Safe Wins).")
 
 # --- 5. THE EVIDENCE LOG ---
 st.markdown("### 🕵️ LIVE INTELLIGENCE FEED")
@@ -378,3 +385,21 @@ st.dataframe(
     },
     hide_index=True
 )
+
+# --- 6. FOOTER: METHODOLOGY ---
+st.markdown("<br><br>", unsafe_allow_html=True)
+with st.expander("🔬 Methodology: How We Listen"):
+    st.markdown("""
+    **1. The Harvest** Every 60 minutes, our autonomous agents scan TikTok for high-velocity discussions surrounding Malaysian public policy. We filter for relevance, not just virality, ensuring we capture the *average* voice, not just influencers.
+
+    **2. The Analysis (AI Agent)** We employ **Gemini 2.0 Flash**, an advanced LLM tuned to understand Malaysian context (*Manglish, Bahasa Rojak, Dialects*). It categorizes users into 4 Archetypes:
+    * **🛒 Economic Pragmatist:** Focuses on wallet issues (Wages, Prices).
+    * **🏙️ Urban Reformist:** Focuses on governance, corruption, and civil liberties.
+    * **🕌 Heartland Conservative:** Focuses on tradition, religion, and rural identity.
+    * **🤡 Digital Cynic:** Uses satire and memes to express disillusionment.
+
+    **3. The Metrics** * **Public Consensus:** The ratio of Positive to Total videos.
+    * **Resistance Level:** The ratio of Negative to Total videos.
+    
+    *Disclaimer: This tool tracks specific keywords and relies on AI interpretation. It is designed for trend analysis, not statistical polling.*
+    """)
