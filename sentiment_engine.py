@@ -105,18 +105,20 @@ def analyze_videos():
             
             # Clean and parse JSON
             cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
-            result = json.loads(cleaned_text)
+            
+            try:
+                result = json.loads(cleaned_text)
+            except json.JSONDecodeError:
+                print(f"⚠️ JSON Parse Error for {video_id}, skipping...")
+                continue
 
-            # --- BUG FIX STARTS HERE ---
-            # Sometimes Gemini returns a list like [{"sentiment": "..."}] instead of just the dict.
-            # We check if it is a list, and if so, take the first item.
+            # --- THE FIX: Handle List vs Dictionary ---
             if isinstance(result, list):
                 if len(result) > 0:
-                    result = result[0]
+                    result = result[0]  # Unwrap the first item
                 else:
-                    # Handle empty list case
-                    result = {} 
-            # --- BUG FIX ENDS HERE ---
+                    result = {} # Handle empty list
+            # ------------------------------------------
 
             # Map Data
             db_payload = {
