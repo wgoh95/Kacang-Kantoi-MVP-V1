@@ -5,16 +5,17 @@ import plotly.graph_objects as go
 from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 # 1. Config & Setup
 st.set_page_config(page_title="KACANG KANTOI", page_icon="🥜", layout="wide", initial_sidebar_state="collapsed")
 load_dotenv()
 
-# --- THE DESIGN SYSTEM (NYT DARK MODE) ---
+# --- THE DESIGN SYSTEM (High-Readability Mode) ---
 st.markdown("""
 <style>
     /* IMPORT FONT: Inter */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
 
     /* GLOBAL RESET */
     .stApp {
@@ -33,23 +34,23 @@ st.markdown("""
         background-color: #FFFFFF;
         border: 1px solid #333;
         border-top: 6px solid #FFC107;
-        padding: 3.5rem;
+        padding: 4rem;
         border-radius: 2px;
         box-shadow: 0px 10px 40px rgba(0,0,0,0.6);
     }
 
     .hero-title {
-        font-size: 3.8rem !important;
+        font-size: 4.2rem !important;
         font-weight: 900 !important;
         color: #000000 !important;
         text-transform: uppercase;
         line-height: 0.95;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.8rem;
         letter-spacing: -2px;
     }
 
     .hero-subtitle {
-        font-size: 1.2rem !important;
+        font-size: 1.4rem !important;
         color: #000 !important;
         font-weight: 700 !important;
         text-transform: uppercase;
@@ -62,9 +63,9 @@ st.markdown("""
     
     .hero-copy {
         color: #1a1a1a;
-        font-size: 1.3rem;
+        font-size: 1.4rem;
         line-height: 1.6; 
-        max-width: 900px; 
+        max-width: 950px; 
         font-weight: 500;
         margin-top: 1rem;
     }
@@ -73,8 +74,8 @@ st.markdown("""
     .status-tag {
         background-color: #000;
         color: #FFF;
-        padding: 4px 12px;
-        font-size: 0.8rem;
+        padding: 6px 14px;
+        font-size: 0.9rem;
         vertical-align: middle;
         font-weight: 700;
         border-radius: 4px;
@@ -90,24 +91,36 @@ st.markdown("""
         color: #000;
     }
 
-    /* --- METRICS (Native Streamlit Styling Override) --- */
+    /* --- METRICS (Typography Optimization) --- */
     [data-testid="stMetricLabel"] {
-        color: #888;
-        font-size: 0.85rem;
+        color: #999;
+        font-size: 1rem !important;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
         font-weight: 600;
     }
     
     [data-testid="stMetricValue"] {
         color: #FFF;
-        font-size: 2.8rem;
+        font-size: 3.5rem !important; /* Larger for impact */
         font-weight: 800;
+        line-height: 1.2;
     }
 
     [data-testid="stMetricDelta"] {
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 1rem !important;
+    }
+    
+    /* Custom Context Box for Primary Vector */
+    .context-box {
+        font-size: 0.95rem;
+        color: #BBB;
+        border-left: 2px solid #FFC107;
+        padding-left: 10px;
+        margin-top: -10px;
+        line-height: 1.4;
+        font-style: italic;
     }
 
     /* --- CHART HEADERS --- */
@@ -115,43 +128,51 @@ st.markdown("""
         color: #FFF !important;
         text-transform: uppercase;
         font-weight: 900 !important;
-        font-size: 1.6rem !important;
+        font-size: 1.8rem !important;
         letter-spacing: 0.5px;
         border-left: 6px solid #FFC107;
         padding-left: 20px;
-        margin-bottom: 10px !important;
+        margin-bottom: 12px !important;
     }
     
     .chart-caption {
         color: #BBB;
-        font-size: 1.05rem;
+        font-size: 1.15rem;
         margin-bottom: 2.5rem;
         margin-left: 26px;
         font-weight: 400;
         opacity: 0.9;
-        max-width: 600px;
-        line-height: 1.4;
+        max-width: 700px;
+        line-height: 1.5;
     }
 
     /* --- DATAFRAME --- */
     [data-testid="stDataFrame"] {
-        border: 1px solid #222;
+        border: 1px solid #333;
         background-color: #0A0A0A;
+        font-size: 1.05rem; /* Better readability */
     }
     
     /* --- FOOTER TYPOGRAPHY --- */
     .methodology-text {
-        font-size: 1.15rem !important;
+        font-size: 1.2rem !important;
         line-height: 1.8 !important;
         color: #DDD !important;
     }
     
     .methodology-header {
-        font-size: 1.3rem !important;
-        font-weight: 700 !important;
+        font-size: 1.4rem !important;
+        font-weight: 800 !important;
         color: #FFC107 !important;
         margin-bottom: 1rem !important;
         display: block;
+        text-transform: uppercase;
+        margin-top: 1.5rem;
+    }
+    
+    .methodology-sub {
+        font-weight: 700;
+        color: #FFF;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -170,6 +191,7 @@ supabase = init_connection()
 def get_data():
     if not supabase: return pd.DataFrame()
     try:
+        # Fetching all records sorted by time
         response = supabase.table("sentiment_logs").select("*").order("created_at", desc=True).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
@@ -204,14 +226,77 @@ add_spacer()
 
 # Handle Data State
 if df.empty:
-    st.error("⚠️ SIGNAL LOST. Please initialize the sentiment engine.")
+    st.error("SIGNAL LOST. Please initialize the sentiment engine.")
     st.stop()
 
-# Calculate Metrics
+# --- METRIC CALCULATIONS (SMART DELTA) ---
+# 1. Total Count
 total_videos = len(df)
-positive_pct = (len(df[df['sentiment'] == 'Positive']) / total_videos * 100)
-negative_pct = (len(df[df['sentiment'] == 'Negative']) / total_videos * 100)
-top_topic = df['topic'].mode()[0] if not df['topic'].empty else "N/A"
+
+# 2. Time Splitting for Trend Analysis (Today vs Yesterday / Last 12h vs Prev 12h)
+# Simplified: We look for a midpoint or date boundary.
+current_window = df[df['created_at'] > (datetime.now() - timedelta(hours=24))]
+previous_window = df[(df['created_at'] <= (datetime.now() - timedelta(hours=24))) & 
+                     (df['created_at'] > (datetime.now() - timedelta(hours=48)))]
+
+# 3. Consensus Logic
+if not current_window.empty:
+    curr_pos_count = len(current_window[current_window['sentiment'] == 'Positive'])
+    curr_total = len(current_window)
+    curr_pos_pct = (curr_pos_count / curr_total) * 100
+else:
+    # Fallback if no recent data (use global)
+    curr_pos_pct = (len(df[df['sentiment'] == 'Positive']) / total_videos * 100)
+
+# 4. Resistance Logic
+if not current_window.empty:
+    curr_neg_count = len(current_window[current_window['sentiment'] == 'Negative'])
+    curr_neg_pct = (curr_neg_count / curr_total) * 100
+else:
+    curr_neg_pct = (len(df[df['sentiment'] == 'Negative']) / total_videos * 100)
+
+# 5. Trend Calculation
+delta_consensus = "Establishing Baseline"
+delta_color_consensus = "off" # Gray
+
+delta_resistance = "Establishing Baseline"
+delta_color_resistance = "off"
+
+if not previous_window.empty:
+    # Calc Previous Pct
+    prev_pos_pct = (len(previous_window[previous_window['sentiment'] == 'Positive']) / len(previous_window)) * 100
+    prev_neg_pct = (len(previous_window[previous_window['sentiment'] == 'Negative']) / len(previous_window)) * 100
+    
+    # Consensus Trend
+    diff_pos = curr_pos_pct - prev_pos_pct
+    if abs(diff_pos) < 1.0:
+        delta_consensus = "Stable (Neutral)"
+        delta_color_consensus = "off"
+    else:
+        delta_consensus = f"{diff_pos:+.1f}% vs 24h ago"
+        delta_color_consensus = "normal" # Green if up, Red if down
+
+    # Resistance Trend (Inverse: Down is Good)
+    diff_neg = curr_neg_pct - prev_neg_pct
+    if abs(diff_neg) < 1.0:
+        delta_resistance = "Stable (Neutral)"
+        delta_color_resistance = "off"
+    else:
+        delta_resistance = f"{diff_neg:+.1f}% vs 24h ago"
+        delta_color_resistance = "inverse" # Red if up, Green if down
+
+# 6. Dominant Conversation & Dynamic Context
+if not df['topic'].empty:
+    top_topic = df['topic'].mode()[0]
+    # Get the latest summary for this specific topic to provide context
+    try:
+        latest_topic_row = df[df['topic'] == top_topic].iloc[0]
+        context_text = f"Latest trigger: \"{latest_topic_row['summary']}\""
+    except:
+        context_text = "Emerging pattern detected."
+else:
+    top_topic = "N/A"
+    context_text = "No data available."
 
 # --- 2. THE PUBLIC PULSE (METRICS) ---
 st.markdown("### THE PUBLIC PULSE")
@@ -221,24 +306,25 @@ with col1:
     st.metric(
         label="Conversations Audited",
         value=total_videos,
-        help="Total volume of unique data points ingested in the last 24 hours."
+        help="Total volume of unique data points ingested."
     )
 
 with col2:
     st.metric(
         label="Public Consensus",
-        value=f"{positive_pct:.1f}%",
-        delta="Positive Resonance",
-        help="The percentage of voices that actively support or align with the current narrative."
+        value=f"{curr_pos_pct:.1f}%",
+        delta=delta_consensus,
+        delta_color=delta_color_consensus,
+        help="The percentage of voices that actively support the narrative. 'Stable' indicates no significant shift from previous baseline."
     )
 
 with col3:
     st.metric(
         label="Resistance Level",
-        value=f"{negative_pct:.1f}%",
-        delta="-Critical Pushback",
-        delta_color="inverse", # Makes red mean "warning"
-        help="The intensity of disagreement. A score >50% indicates significant public friction."
+        value=f"{curr_neg_pct:.1f}%",
+        delta=delta_resistance,
+        delta_color=delta_color_resistance,
+        help="The intensity of disagreement. A score >50% indicates significant friction."
     )
 
 with col4:
@@ -247,6 +333,8 @@ with col4:
         value=top_topic,
         help="The primary vector driving engagement based on keyword velocity."
     )
+    # Dynamic Context Box
+    st.markdown(f"<div class='context-box'>{context_text}</div>", unsafe_allow_html=True)
 
 add_spacer()
 
@@ -351,7 +439,7 @@ add_spacer()
 st.markdown("### LIVE INTELLIGENCE FEED")
 st.markdown("<div class='chart-caption'>The raw data behind the insights. Filtered for relevance.</div>", unsafe_allow_html=True)
 
-if st.button("🔄 REFRESH INTELLIGENCE"):
+if st.button("REFRESH INTELLIGENCE"):
     st.cache_data.clear()
     st.rerun()
 
@@ -383,15 +471,16 @@ with st.expander("METHODOLOGY: HOW WE LISTEN"):
         We employ <b>Google's Gemini 2.0 Pro</b> engine, tuned to understand Malaysian context (<i>Manglish, Bahasa Rojak, Dialects</i>). 
         It categorizes users into 4 key archetypes:
         <ul>
-            <li><b> Economic Pragmatist:</b> Focuses on wallet issues (Wages, Prices).</li>
-            <li><b> Urban Reformist:</b> Focuses on governance, corruption, and civil liberties.</li>
-            <li><b> Heartland Conservative:</b> Focuses on tradition, religion, and rural identity.</li>
-            <li><b> Digital Cynic:</b> Uses satire and memes to express disillusionment.</li>
+            <li><span class="methodology-sub">Economic Pragmatist:</span> Focuses on wallet issues (Wages, Prices).</li>
+            <li><span class="methodology-sub">Urban Reformist:</span> Focuses on governance, corruption, and civil liberties.</li>
+            <li><span class="methodology-sub">Heartland Conservative:</span> Focuses on tradition, religion, and rural identity.</li>
+            <li><span class="methodology-sub">Digital Cynic:</span> Uses satire and memes to express disillusionment.</li>
         </ul>
         <br>
         <span class="methodology-header">3. THE METRICS</span>
-        <b>Public Consensus:</b> The ratio of Positive to Total voices.<br>
-        <b>Resistance Level:</b> The ratio of Negative to Total voices.
+        <span class="methodology-sub">Public Consensus:</span> The ratio of Positive to Total voices.<br>
+        <span class="methodology-sub">Resistance Level:</span> The ratio of Negative to Total voices.<br>
+        <span class="methodology-sub">Dominant Conversation:</span> The primary theme driving engagement (e.g., Cost of Living, Leadership).
         <br><br>
         <i>Disclaimer: This tool analyzes specific keywords and relies on generative AI interpretation. It is designed for trend analysis, not statistical polling.</i>
     </div>
