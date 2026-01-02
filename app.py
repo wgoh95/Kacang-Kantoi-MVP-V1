@@ -24,8 +24,8 @@ st.markdown("""
 
     /* REMOVE PADDING */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 3rem !important;
+        padding-top: 2rem !important;
+        padding-bottom: 5rem !important;
     }
 
     /* --- HERO CARD --- */
@@ -33,14 +33,13 @@ st.markdown("""
         background-color: #FFFFFF;
         border: 1px solid #333;
         border-top: 6px solid #FFC107;
-        padding: 3rem;
-        border-radius: 4px;
-        margin-bottom: 3rem;
+        padding: 3.5rem;
+        border-radius: 2px;
         box-shadow: 0px 10px 40px rgba(0,0,0,0.6);
     }
 
     .hero-title {
-        font-size: 4rem !important;
+        font-size: 3.8rem !important;
         font-weight: 900 !important;
         color: #000000 !important;
         text-transform: uppercase;
@@ -50,7 +49,7 @@ st.markdown("""
     }
 
     .hero-subtitle {
-        font-size: 1.25rem !important;
+        font-size: 1.2rem !important;
         color: #000 !important;
         font-weight: 700 !important;
         text-transform: uppercase;
@@ -63,10 +62,11 @@ st.markdown("""
     
     .hero-copy {
         color: #1a1a1a;
-        font-size: 1.25rem;
-        line-height: 1.7; 
+        font-size: 1.3rem;
+        line-height: 1.6; 
         max-width: 900px; 
         font-weight: 500;
+        margin-top: 1rem;
     }
 
     /* TAGS */
@@ -74,7 +74,7 @@ st.markdown("""
         background-color: #000;
         color: #FFF;
         padding: 4px 12px;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         vertical-align: middle;
         font-weight: 700;
         border-radius: 4px;
@@ -92,8 +92,8 @@ st.markdown("""
 
     /* --- METRICS (Native Streamlit Styling Override) --- */
     [data-testid="stMetricLabel"] {
-        color: #D1D1D1;
-        font-size: 0.9rem;
+        color: #888;
+        font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 600;
@@ -101,8 +101,8 @@ st.markdown("""
     
     [data-testid="stMetricValue"] {
         color: #FFF;
-        font-size: 2.5rem;
-        font-weight: 900;
+        font-size: 2.8rem;
+        font-weight: 800;
     }
 
     [data-testid="stMetricDelta"] {
@@ -115,27 +115,43 @@ st.markdown("""
         color: #FFF !important;
         text-transform: uppercase;
         font-weight: 900 !important;
-        font-size: 1.8rem !important;
-        margin-top: 2rem;
+        font-size: 1.6rem !important;
         letter-spacing: 0.5px;
-        border-left: 8px solid #FFC107;
+        border-left: 6px solid #FFC107;
         padding-left: 20px;
-        margin-bottom: 8px !important;
+        margin-bottom: 10px !important;
     }
     
     .chart-caption {
-        color: #E0E0E0;
-        font-size: 1.1rem;
-        margin-bottom: 2rem;
-        margin-left: 28px;
+        color: #BBB;
+        font-size: 1.05rem;
+        margin-bottom: 2.5rem;
+        margin-left: 26px;
         font-weight: 400;
-        opacity: 0.8;
+        opacity: 0.9;
+        max-width: 600px;
+        line-height: 1.4;
     }
 
     /* --- DATAFRAME --- */
     [data-testid="stDataFrame"] {
-        border: 1px solid #333;
-        margin-top: 1rem;
+        border: 1px solid #222;
+        background-color: #0A0A0A;
+    }
+    
+    /* --- FOOTER TYPOGRAPHY --- */
+    .methodology-text {
+        font-size: 1.15rem !important;
+        line-height: 1.8 !important;
+        color: #DDD !important;
+    }
+    
+    .methodology-header {
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
+        color: #FFC107 !important;
+        margin-bottom: 1rem !important;
+        display: block;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -165,22 +181,26 @@ def get_data():
 
 df = get_data()
 
+# --- HELPER: SPACER ---
+def add_spacer():
+    st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+
 # --- 1. THE HERO STORY ---
 st.markdown(f"""
 <div class="hero-card">
     <div class="hero-title">KACANG KANTOI <span class="status-tag">INTEL BETA</span></div>
     <div class="hero-subtitle">THE SIGNAL AMIDST THE NOISE.</div>
     <div class="hero-copy">
-        Digital conversations are messy. Public sentiment is often invisible.
+        Digital conversations are noisy. Public sentiment is often invisible.
         <br><br>
-        <b>Kacang Kantoi</b> uses autonomous AI agents to audit the <i>gap</i> between official policy and ground reality. 
-        We listen to the <span class="highlight-yellow">Malay, English, and Mandarin</span> ecosystems to reveal what 
-        traditional polls miss: <b>The raw, unfiltered pulse of the nation.</b>
-        <br><br>
-        <i>For the curious citizen and the strategic decision-maker.</i>
+        <b>Kacang Kantoi</b> deploys <i>autonomous intelligence</i> to audit the gap between official policy and ground reality. 
+        We scan the <span class="highlight-yellow">Malay, English, and Mandarin</span> ecosystems to reveal what 
+        traditional polls miss: <b>The unfiltered pulse of the nation.</b>
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+add_spacer()
 
 # Handle Data State
 if df.empty:
@@ -194,14 +214,14 @@ negative_pct = (len(df[df['sentiment'] == 'Negative']) / total_videos * 100)
 top_topic = df['topic'].mode()[0] if not df['topic'].empty else "N/A"
 
 # --- 2. THE PUBLIC PULSE (METRICS) ---
-st.markdown("### 📡 THE PUBLIC PULSE")
+st.markdown("### THE PUBLIC PULSE")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric(
         label="Conversations Audited",
         value=total_videos,
-        help="Total number of unique Tikok videos analyzed in the last 24 hours."
+        help="Total volume of unique data points ingested in the last 24 hours."
     )
 
 with col2:
@@ -209,7 +229,7 @@ with col2:
         label="Public Consensus",
         value=f"{positive_pct:.1f}%",
         delta="Positive Resonance",
-        help="The percentage of voices that actively support or agree with the current narrative."
+        help="The percentage of voices that actively support or align with the current narrative."
     )
 
 with col3:
@@ -218,41 +238,37 @@ with col3:
         value=f"{negative_pct:.1f}%",
         delta="-Critical Pushback",
         delta_color="inverse", # Makes red mean "warning"
-        help="The intensity of disagreement. A score >50% indicates significant public anger."
+        help="The intensity of disagreement. A score >50% indicates significant public friction."
     )
 
 with col4:
     st.metric(
         label="Dominant Conversation",
         value=top_topic,
-        help="The #1 topic driving the most engagement right now based on keyword velocity."
+        help="The primary vector driving engagement based on keyword velocity."
     )
 
-st.markdown("---")
+add_spacer()
 
 # --- 3. TRAJECTORY OF TRUST (TRENDS) ---
-st.markdown("### 📈 THE TRAJECTORY OF TRUST")
+st.markdown("### THE TRAJECTORY OF TRUST")
 st.markdown("<div class='chart-caption'>Tracking how public sentiment shifts hour-by-hour in response to real-world events.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    # 1. Transform Data: Calculate % of sentiment per day
+    # 1. Transform Data
     daily_counts = df.groupby(['date', 'sentiment']).size().reset_index(name='count')
     daily_totals = df.groupby(['date']).size().reset_index(name='total')
-    
-    # Merge to get percentages
     daily_trend = pd.merge(daily_counts, daily_totals, on='date')
     daily_trend['percentage'] = (daily_trend['count'] / daily_trend['total']) * 100
     
-    # 2. Build the Chart
+    # 2. Build Chart
     fig_trend = go.Figure()
-
-    # Define Color Map
     colors = {'Positive': '#FFC107', 'Negative': '#EF553B', 'Neutral': '#444444'}
     
     for sentiment, color in colors.items():
         subset = daily_trend[daily_trend['sentiment'] == sentiment]
         if not subset.empty:
-            # Add Scatter Dots (Raw Polls Look)
+            # Scatter Dots
             fig_trend.add_trace(go.Scatter(
                 x=subset['date'], 
                 y=subset['percentage'],
@@ -261,8 +277,7 @@ if not df.empty:
                 name=f"{sentiment} (Raw)",
                 showlegend=False
             ))
-            
-            # Add Smoothed Line (Trend Look)
+            # Smooth Line
             fig_trend.add_trace(go.Scatter(
                 x=subset['date'], 
                 y=subset['percentage'],
@@ -271,44 +286,27 @@ if not df.empty:
                 name=sentiment
             ))
 
-    # 3. High-Contrast NYT Styling
+    # 3. Styling
     fig_trend.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         hovermode="x unified",
-        xaxis=dict(
-            showgrid=True, 
-            gridcolor='#222', 
-            tickfont=dict(size=14, color="#DDD"),
-            gridwidth=1,
-            zeroline=False
-        ),
-        yaxis=dict(
-            showgrid=True, 
-            gridcolor='#222',
-            tickfont=dict(size=14, color="#DDD"),
-            range=[0, 105], # Lock Y-axis to 0-100%
-            ticksuffix="%",
-            zeroline=False
-        ),
-        legend=dict(
-            orientation="h", 
-            y=1.1, 
-            x=0,
-            font=dict(size=14, color="#FFF"),
-            bgcolor="rgba(0,0,0,0)"
-        ),
+        xaxis=dict(showgrid=True, gridcolor='#222', tickfont=dict(size=14, color="#DDD"), zeroline=False),
+        yaxis=dict(showgrid=True, gridcolor='#222', tickfont=dict(size=14, color="#DDD"), range=[0, 105], ticksuffix="%", zeroline=False),
+        legend=dict(orientation="h", y=1.1, x=0, font=dict(size=14, color="#FFF"), bgcolor="rgba(0,0,0,0)"),
         margin=dict(t=40, b=40, l=0, r=0)
     )
     st.plotly_chart(fig_trend, use_container_width=True)
+
+add_spacer()
 
 # --- 4. VISUAL NARRATIVE (PIE & HEATMAP) ---
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.markdown("### 🎤 WHO IS DOMINATING THE MICROPHONE?")
-    st.markdown("<div class='chart-caption'>Breakdown of the personas driving the conversation.</div>", unsafe_allow_html=True)
+    st.markdown("### SHARE OF VOICE")
+    st.markdown("<div class='chart-caption'>Which persona is dominating the microphone?</div>", unsafe_allow_html=True)
     
     if 'persona' in df.columns:
         fig_persona = px.pie(df, names='persona', hole=0.6, 
@@ -325,12 +323,11 @@ with col1:
         fig_persona.update_traces(textinfo='percent', textfont_size=16)
         st.plotly_chart(fig_persona, use_container_width=True)
         
-        # Storytelling Element
-        st.info("💡 **Insight:** If 'Digital Cynic' is >50%, the feed is dominated by satire/memes. Policy announcements struggle to be taken seriously here.")
+        st.info("💡 **Intel:** A high 'Digital Cynic' share suggests the narrative has been hijacked by satire. Traditional messaging will likely fail here.")
 
 with col2:
-    st.markdown("### 🔥 TOPIC TOXICITY SCANNER")
-    st.markdown("<div class='chart-caption'>Identifying where policy meets resistance (Red) or approval (Yellow).</div>", unsafe_allow_html=True)
+    st.markdown("### TOPIC TOXICITY SCANNER")
+    st.markdown("<div class='chart-caption'>Where policy meets resistance (Red) or approval (Yellow).</div>", unsafe_allow_html=True)
     
     if 'topic' in df.columns:
         topic_counts = df.groupby(['topic', 'sentiment']).size().reset_index(name='count')
@@ -341,31 +338,17 @@ with col2:
             paper_bgcolor="rgba(0,0,0,0)", 
             plot_bgcolor="rgba(0,0,0,0)", 
             font=dict(color="white"),
-            xaxis=dict(
-                showgrid=True, 
-                gridcolor='#333', 
-                tickfont=dict(size=14, color="#FFFFFF"),
-                title_font=dict(size=16, color="#E0E0E0"),
-                title="Volume of Noise"
-            ), 
-            yaxis=dict(
-                showgrid=False, 
-                tickfont=dict(size=15, color="#FFFFFF", weight="bold"),
-                title=None
-            ),
-            legend=dict(
-                font=dict(size=14, color="#E0E0E0"),
-                title=dict(font=dict(color="#FFFFFF"))
-            ),
+            xaxis=dict(showgrid=True, gridcolor='#333', tickfont=dict(size=14, color="#FFFFFF"), title="Volume of Engagement"), 
+            yaxis=dict(showgrid=False, tickfont=dict(size=15, color="#FFFFFF", weight="bold"), title=None),
+            legend=dict(font=dict(size=14, color="#E0E0E0"), title=None),
             margin=dict(t=30, b=20, l=0, r=0)
         )
         st.plotly_chart(fig_topic, use_container_width=True)
-        
-        # Storytelling Element
-        st.caption("🔴 **Red Zones:** High-friction topics driving anger (Risky).  \n🟡 **Yellow Zones:** High-alignment topics driving praise (Safe Wins).")
+
+add_spacer()
 
 # --- 5. THE EVIDENCE LOG ---
-st.markdown("### 🕵️ LIVE INTELLIGENCE FEED")
+st.markdown("### LIVE INTELLIGENCE FEED")
 st.markdown("<div class='chart-caption'>The raw data behind the insights. Filtered for relevance.</div>", unsafe_allow_html=True)
 
 if st.button("🔄 REFRESH INTELLIGENCE"):
@@ -386,20 +369,30 @@ st.dataframe(
     hide_index=True
 )
 
+add_spacer()
+
 # --- 6. FOOTER: METHODOLOGY ---
-st.markdown("<br><br>", unsafe_allow_html=True)
-with st.expander("🔬 Methodology: How We Listen"):
+with st.expander("METHODOLOGY: HOW WE LISTEN"):
     st.markdown("""
-    **1. The Harvest** Every 60 minutes, our autonomous agents scan TikTok for high-velocity discussions surrounding Malaysian public policy. We filter for relevance, not just virality, ensuring we capture the *average* voice, not just influencers.
-
-    **2. The Analysis (AI Agent)** We employ **Gemini 2.0 Flash**, an advanced LLM tuned to understand Malaysian context (*Manglish, Bahasa Rojak, Dialects*). It categorizes users into 4 Archetypes:
-    * **🛒 Economic Pragmatist:** Focuses on wallet issues (Wages, Prices).
-    * **🏙️ Urban Reformist:** Focuses on governance, corruption, and civil liberties.
-    * **🕌 Heartland Conservative:** Focuses on tradition, religion, and rural identity.
-    * **🤡 Digital Cynic:** Uses satire and memes to express disillusionment.
-
-    **3. The Metrics** * **Public Consensus:** The ratio of Positive to Total videos.
-    * **Resistance Level:** The ratio of Negative to Total videos.
-    
-    *Disclaimer: This tool tracks specific keywords and relies on AI interpretation. It is designed for trend analysis, not statistical polling.*
-    """)
+    <div class="methodology-text">
+        <span class="methodology-header">1. THE HARVEST</span>
+        Every 60 minutes, our autonomous system scans the ecosystem for high-velocity discussions surrounding Malaysian public policy. 
+        We filter for relevance, ensuring we capture the <i>average</i> voice, not just influencers.
+        <br><br>
+        <span class="methodology-header">2. THE INTELLIGENCE (Gemini 2.0 Pro)</span>
+        We employ <b>Google's Gemini 2.0 Pro</b> engine, tuned to understand Malaysian context (<i>Manglish, Bahasa Rojak, Dialects</i>). 
+        It categorizes users into 4 key archetypes:
+        <ul>
+            <li><b> Economic Pragmatist:</b> Focuses on wallet issues (Wages, Prices).</li>
+            <li><b> Urban Reformist:</b> Focuses on governance, corruption, and civil liberties.</li>
+            <li><b> Heartland Conservative:</b> Focuses on tradition, religion, and rural identity.</li>
+            <li><b> Digital Cynic:</b> Uses satire and memes to express disillusionment.</li>
+        </ul>
+        <br>
+        <span class="methodology-header">3. THE METRICS</span>
+        <b>Public Consensus:</b> The ratio of Positive to Total voices.<br>
+        <b>Resistance Level:</b> The ratio of Negative to Total voices.
+        <br><br>
+        <i>Disclaimer: This tool analyzes specific keywords and relies on generative AI interpretation. It is designed for trend analysis, not statistical polling.</i>
+    </div>
+    """, unsafe_allow_html=True)
