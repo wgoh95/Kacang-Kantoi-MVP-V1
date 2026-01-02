@@ -15,7 +15,7 @@ if not gemini_api_key:
 
 genai.configure(api_key=gemini_api_key)
 
-# Configuration to force JSON output (Prevents parsing errors)
+# Configuration to force JSON output
 generation_config = {
     "temperature": 0.4,
     "top_p": 0.95,
@@ -24,7 +24,7 @@ generation_config = {
     "response_mime_type": "application/json",
 }
 
-# Using the stable flash model with JSON config
+# Using the stable flash model
 model = genai.GenerativeModel(
     model_name='gemini-2.0-flash',
     generation_config=generation_config
@@ -53,7 +53,7 @@ def analyze_videos():
         all_videos_response = supabase.table("videos").select("id, caption").execute()
         
         # Filter: Only keep videos that are NOT in the analyzed list
-        # Limit to 10 at a time to be safe with API limits (Free Tier safe)
+        # Limit to 10 at a time to be safe with API limits
         videos_to_analyze = [v for v in all_videos_response.data if v['id'] not in analyzed_ids][:10]
         
         if not videos_to_analyze:
@@ -79,7 +79,7 @@ def analyze_videos():
 
         print(f"\nProcessing {video_id}...")
 
-        # 3. The Prompt (Updated with Psychographic Personas)
+        # 3. The Prompt
         prompt = f"""
         Analyze this TikTok caption regarding Malaysian PM Anwar Ibrahim.
         Caption: "{caption}"
@@ -103,11 +103,22 @@ def analyze_videos():
             # Call Gemini
             response = model.generate_content(prompt)
             
-            # Since we used response_mime_type="application/json", we can load directly
-            result = json.loads(response.text)
+            # Clean and parse JSON
+            cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+            result = json.loads(cleaned_text)
 
-            # --- CRITICAL FIX: Explicit Data Mapping ---
-            # This dictionary matches your Supabase columns EXACTLY.
+            # --- BUG FIX STARTS HERE ---
+            # Sometimes Gemini returns a list like [{"sentiment": "..."}] instead of just the dict.
+            # We check if it is a list, and if so, take the first item.
+            if isinstance(result, list):
+                if len(result) > 0:
+                    result = result[0]
+                else:
+                    # Handle empty list case
+                    result = {} 
+            # --- BUG FIX ENDS HERE ---
+
+            # Map Data
             db_payload = {
                 "video_id": video_id,
                 "sentiment": result.get("sentiment", "Neutral"),
@@ -116,7 +127,7 @@ def analyze_videos():
                 "persona": result.get("persona", "Unknown"),
                 "sarcasm_flag": result.get("sarcasm", False),
                 "summary": result.get("summary", ""),
-                "raw_comment": caption  # We save the caption here for reference
+                "raw_comment": caption
             }
             
             # Insert into Supabase
