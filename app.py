@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
 
 # 1. Config & Setup
 st.set_page_config(page_title="KACANG KANTOI", page_icon="🥜", layout="wide", initial_sidebar_state="collapsed")
@@ -195,6 +194,7 @@ def get_data():
         response = supabase.table("sentiment_logs").select("*").order("created_at", desc=True).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
+            # Ensure proper datetime conversion with UTC
             df['created_at'] = pd.to_datetime(df['created_at'])
             df['date'] = df['created_at'].dt.date
         return df
@@ -229,15 +229,17 @@ if df.empty:
     st.error("SIGNAL LOST. Please initialize the sentiment engine.")
     st.stop()
 
-# --- METRIC CALCULATIONS (SMART DELTA) ---
+# --- METRIC CALCULATIONS (SMART DELTA WITH TIMEZONE FIX) ---
 # 1. Total Count
 total_videos = len(df)
 
-# 2. Time Splitting for Trend Analysis (Today vs Yesterday / Last 12h vs Prev 12h)
-# Simplified: We look for a midpoint or date boundary.
-current_window = df[df['created_at'] > (datetime.now() - timedelta(hours=24))]
-previous_window = df[(df['created_at'] <= (datetime.now() - timedelta(hours=24))) & 
-                     (df['created_at'] > (datetime.now() - timedelta(hours=48)))]
+# 2. Time Splitting (FIXED: Using pd.Timestamp.now(tz='UTC'))
+# This ensures we are comparing UTC database time with UTC system time.
+now_utc = pd.Timestamp.now(tz='UTC')
+
+current_window = df[df['created_at'] > (now_utc - pd.Timedelta(hours=24))]
+previous_window = df[(df['created_at'] <= (now_utc - pd.Timedelta(hours=24))) & 
+                     (df['created_at'] > (now_utc - pd.Timedelta(hours=48)))]
 
 # 3. Consensus Logic
 if not current_window.empty:
@@ -251,6 +253,7 @@ else:
 # 4. Resistance Logic
 if not current_window.empty:
     curr_neg_count = len(current_window[current_window['sentiment'] == 'Negative'])
+    curr_total = len(current_window) # Re-calculate total to be safe
     curr_neg_pct = (curr_neg_count / curr_total) * 100
 else:
     curr_neg_pct = (len(df[df['sentiment'] == 'Negative']) / total_videos * 100)
@@ -264,26 +267,28 @@ delta_color_resistance = "off"
 
 if not previous_window.empty:
     # Calc Previous Pct
-    prev_pos_pct = (len(previous_window[previous_window['sentiment'] == 'Positive']) / len(previous_window)) * 100
-    prev_neg_pct = (len(previous_window[previous_window['sentiment'] == 'Negative']) / len(previous_window)) * 100
-    
-    # Consensus Trend
-    diff_pos = curr_pos_pct - prev_pos_pct
-    if abs(diff_pos) < 1.0:
-        delta_consensus = "Stable (Neutral)"
-        delta_color_consensus = "off"
-    else:
-        delta_consensus = f"{diff_pos:+.1f}% vs 24h ago"
-        delta_color_consensus = "normal" # Green if up, Red if down
+    prev_total = len(previous_window)
+    if prev_total > 0:
+        prev_pos_pct = (len(previous_window[previous_window['sentiment'] == 'Positive']) / prev_total) * 100
+        prev_neg_pct = (len(previous_window[previous_window['sentiment'] == 'Negative']) / prev_total) * 100
+        
+        # Consensus Trend
+        diff_pos = curr_pos_pct - prev_pos_pct
+        if abs(diff_pos) < 1.0:
+            delta_consensus = "Stable (Neutral)"
+            delta_color_consensus = "off"
+        else:
+            delta_consensus = f"{diff_pos:+.1f}% vs 24h ago"
+            delta_color_consensus = "normal" # Green if up, Red if down
 
-    # Resistance Trend (Inverse: Down is Good)
-    diff_neg = curr_neg_pct - prev_neg_pct
-    if abs(diff_neg) < 1.0:
-        delta_resistance = "Stable (Neutral)"
-        delta_color_resistance = "off"
-    else:
-        delta_resistance = f"{diff_neg:+.1f}% vs 24h ago"
-        delta_color_resistance = "inverse" # Red if up, Green if down
+        # Resistance Trend (Inverse: Down is Good)
+        diff_neg = curr_neg_pct - prev_neg_pct
+        if abs(diff_neg) < 1.0:
+            delta_resistance = "Stable (Neutral)"
+            delta_color_resistance = "off"
+        else:
+            delta_resistance = f"{diff_neg:+.1f}% vs 24h ago"
+            delta_color_resistance = "inverse" # Red if up, Green if down
 
 # 6. Dominant Conversation & Dynamic Context
 if not df['topic'].empty:
