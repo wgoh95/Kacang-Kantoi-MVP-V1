@@ -1,14 +1,13 @@
-name: Real Hourly Scraper
+name: Real Hourly Pipeline
 
 on:
   schedule:
     # Runs at minute 15 past every hour (e.g. 1:15, 2:15)
-    # We choose :15 to avoid 'rush hour' on free servers
     - cron: '15 * * * *'
-  workflow_dispatch: # Allows manual trigger button
+  workflow_dispatch: # Allows manual button click
 
 jobs:
-  scrape-and-update:
+  scrape-and-analyze:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,16 +20,21 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        # This installs everything listed in your requirements.txt
-        # (Make sure apify-client and google-generativeai are in that file!)
         run: |
           pip install -r requirements.txt
 
-      - name: Run Sentinel Engine
+      # JOB 1: RUN THE SCRAPER
+      - name: 1. Run TikTok Scraper (Harvest)
         env:
-          # Pass all 4 keys to the script
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python scraper_service.py
+
+      # JOB 2: RUN THE AI ANALYZER
+      - name: 2. Run AI Sentiment Engine (Cook)
+        env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python sentiment_engine.py
