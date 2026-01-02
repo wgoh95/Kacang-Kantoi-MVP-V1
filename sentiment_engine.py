@@ -112,13 +112,14 @@ def analyze_videos():
                 print(f"⚠️ JSON Parse Error for {video_id}, skipping...")
                 continue
 
-            # --- THE FIX: Handle List vs Dictionary ---
+            # --- THE CRITICAL FIX IS HERE ---
+            # If Gemini returns a List instead of an Object, grab the first item
             if isinstance(result, list):
                 if len(result) > 0:
-                    result = result[0]  # Unwrap the first item
+                    result = result[0]
                 else:
-                    result = {} # Handle empty list
-            # ------------------------------------------
+                    result = {}
+            # ---------------------------------
 
             # Map Data
             db_payload = {

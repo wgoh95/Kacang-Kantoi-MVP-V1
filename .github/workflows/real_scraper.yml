@@ -9,6 +9,7 @@ on:
 jobs:
   scrape-and-analyze:
     runs-on: ubuntu-latest
+    timeout-minutes: 15 # Safety net: kills the job if it freezes for > 15 mins
 
     steps:
       - name: Checkout code
@@ -17,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.11' # Updated to fix "End of Life" warning
 
       - name: Install dependencies
         run: |
