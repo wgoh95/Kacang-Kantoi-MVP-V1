@@ -1,0 +1,40 @@
+name: Real Hourly Pipeline
+
+on:
+  schedule:
+    # Runs at minute 15 past every hour (e.g. 1:15, 2:15)
+    - cron: '15 * * * *'
+  workflow_dispatch: # Allows manual button click
+
+jobs:
+  scrape-and-analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # JOB 1: RUN THE SCRAPER
+      - name: 1. Run TikTok Scraper (Harvest)
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python scraper_service.py
+
+      # JOB 2: RUN THE AI ANALYZER
+      - name: 2. Run AI Sentiment Engine (Cook)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python sentiment_engine.py
