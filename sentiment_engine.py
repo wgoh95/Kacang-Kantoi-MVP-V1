@@ -14,8 +14,21 @@ if not gemini_api_key:
     raise ValueError("Missing GEMINI_API_KEY in environment variables")
 
 genai.configure(api_key=gemini_api_key)
-# Using the stable flash model
-model = genai.GenerativeModel('gemini-2.0-flash')
+
+# Configuration to force JSON output (Prevents parsing errors)
+generation_config = {
+    "temperature": 0.4,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 1024,
+    "response_mime_type": "application/json",
+}
+
+# Using the stable flash model with JSON config
+model = genai.GenerativeModel(
+    model_name='gemini-2.0-flash',
+    generation_config=generation_config
+)
 
 # Initialize Supabase
 supabase_url = os.getenv("SUPABASE_URL")
@@ -40,7 +53,7 @@ def analyze_videos():
         all_videos_response = supabase.table("videos").select("id, caption").execute()
         
         # Filter: Only keep videos that are NOT in the analyzed list
-        # Limit to 10 at a time to be safe with API limits
+        # Limit to 10 at a time to be safe with API limits (Free Tier safe)
         videos_to_analyze = [v for v in all_videos_response.data if v['id'] not in analyzed_ids][:10]
         
         if not videos_to_analyze:
@@ -66,27 +79,32 @@ def analyze_videos():
 
         print(f"\nProcessing {video_id}...")
 
-        # 3. The Prompt
+        # 3. The Prompt (Updated with Psychographic Personas)
         prompt = f"""
         Analyze this TikTok caption regarding Malaysian PM Anwar Ibrahim.
         Caption: "{caption}"
+
+        You are a political analyst. Classify the user into ONE of these 4 specific Malaysian archetypes:
+        1. "Economic Pragmatist" (Focus: Cost of living, wages, business, taxes)
+        2. "Heartland Conservative" (Focus: Malay rights, Islam, tradition, rural subsidies)
+        3. "Urban Reformist" (Focus: Corruption, reforms, institutional competency, civil liberties)
+        4. "Digital Cynic" (Focus: Hopelessness, satire, anti-establishment memes)
 
         Return strictly valid JSON with these keys:
         - sentiment: (String) "Positive", "Negative", or "Neutral"
         - sentiment_score: (Float) -1.0 (Negative) to 1.0 (Positive)
         - topic: (String) The main political topic (e.g. Cost of Living, Corruption, 3R, Leadership)
-        - persona: (String) "Urban", "Rural", "Local Chinese", "International"
+        - persona: (String) One of the 4 archetypes listed above.
         - sarcasm: (Boolean) true or false
-        - summary: (String) A 1-sentence summary
+        - summary: (String) A 1-sentence summary of the user's main point.
         """
 
         try:
             # Call Gemini
             response = model.generate_content(prompt)
             
-            # Clean the response text (remove ```json ... ``` wrappers)
-            cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
-            result = json.loads(cleaned_text)
+            # Since we used response_mime_type="application/json", we can load directly
+            result = json.loads(response.text)
 
             # --- CRITICAL FIX: Explicit Data Mapping ---
             # This dictionary matches your Supabase columns EXACTLY.
@@ -111,7 +129,7 @@ def analyze_videos():
         except Exception as e:
             print(f"❌ Error analyzing {video_id}: {e}")
             # Sleep briefly to let the API cool down
-            time.sleep(1)
+            time.sleep(2)
 
     print(f"\n✅ Successfully processed {processed_count}/{len(videos_to_analyze)} videos")
 

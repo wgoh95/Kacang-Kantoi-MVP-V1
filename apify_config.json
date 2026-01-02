@@ -1,0 +1,19 @@
+{
+  "searchQueries": [
+    "Anwar Ibrahim",
+    "PMX",
+    "DSAI",
+    "Datuk Seri Anwar Ibrahim",
+    "安华",
+    "安瓦尔",
+    "马来西亚首相",
+    "Perdana Menteri Anwar"
+  ],
+  "resultsPerPage": 3,
+  "scrapeComments": true,
+  "commentsPerPage": 5,
+  "shouldDownloadSubtitles": false,
+  "proxyConfiguration": {
+    "useApifyProxy": true
+  }
+}
