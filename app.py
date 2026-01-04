@@ -111,17 +111,6 @@ st.markdown("""
         font-size: 1rem !important;
     }
     
-    /* Custom Context Box for Primary Vector */
-    .context-box {
-        font-size: 0.95rem;
-        color: #BBB;
-        border-left: 2px solid #FFC107;
-        padding-left: 10px;
-        margin-top: -10px;
-        line-height: 1.4;
-        font-style: italic;
-    }
-
     /* --- CHART HEADERS --- */
     h3 {
         color: #FFF !important;
@@ -203,6 +192,13 @@ def get_data():
 
 df = get_data()
 
+# Create 24-hour filtered dataframe for real-time data focus
+now_utc = pd.Timestamp.now(tz='UTC')
+if not df.empty:
+    df_24h = df[df['created_at'] > (now_utc - pd.Timedelta(hours=24))].copy()
+else:
+    df_24h = df.copy()
+
 # --- HELPER: SPACER ---
 def add_spacer():
     st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
@@ -230,15 +226,13 @@ if df.empty:
     st.stop()
 
 # --- METRIC CALCULATIONS (SMART DELTA WITH TIMEZONE FIX) ---
-# 1. Total Count
-total_videos = len(df)
+# 1. Total Count (Last 24 Hours)
+total_videos = len(df_24h)
 
-# 2. Time Splitting (FIXED: Using pd.Timestamp.now(tz='UTC'))
-# This ensures we are comparing UTC database time with UTC system time.
-now_utc = pd.Timestamp.now(tz='UTC')
-
-current_window = df[df['created_at'] > (now_utc - pd.Timedelta(hours=24))]
-previous_window = df[(df['created_at'] <= (now_utc - pd.Timedelta(hours=24))) & 
+# 2. Time Splitting for trend comparison
+# current_window is now df_24h (last 24 hours)
+current_window = df_24h
+previous_window = df[(df['created_at'] <= (now_utc - pd.Timedelta(hours=24))) &
                      (df['created_at'] > (now_utc - pd.Timedelta(hours=48)))]
 
 # 3. Consensus Logic
@@ -248,15 +242,15 @@ if not current_window.empty:
     curr_pos_pct = (curr_pos_count / curr_total) * 100
 else:
     # Fallback if no recent data (use global)
-    curr_pos_pct = (len(df[df['sentiment'] == 'Positive']) / total_videos * 100)
+    curr_pos_pct = (len(df[df['sentiment'] == 'Positive']) / len(df) * 100) if not df.empty else 0
 
 # 4. Resistance Logic
 if not current_window.empty:
     curr_neg_count = len(current_window[current_window['sentiment'] == 'Negative'])
-    curr_total = len(current_window) # Re-calculate total to be safe
+    curr_total = len(current_window)
     curr_neg_pct = (curr_neg_count / curr_total) * 100
 else:
-    curr_neg_pct = (len(df[df['sentiment'] == 'Negative']) / total_videos * 100)
+    curr_neg_pct = (len(df[df['sentiment'] == 'Negative']) / len(df) * 100) if not df.empty else 0
 
 # 5. Trend Calculation
 delta_consensus = "Establishing Baseline"
@@ -290,28 +284,43 @@ if not previous_window.empty:
             delta_resistance = f"{diff_neg:+.1f}% vs 24h ago"
             delta_color_resistance = "inverse" # Red if up, Green if down
 
-# 6. Dominant Conversation & Dynamic Context
-if not df['topic'].empty:
-    top_topic = df['topic'].mode()[0]
-    # Get the latest summary for this specific topic to provide context
-    try:
-        latest_topic_row = df[df['topic'] == top_topic].iloc[0]
-        context_text = f"Latest trigger: \"{latest_topic_row['summary']}\""
-    except:
+# 6. Dominant Conversation & Dynamic Context (Last 24 Hours)
+if not df_24h.empty and 'topic' in df_24h.columns and not df_24h['topic'].empty:
+    top_topic = df_24h['topic'].mode()[0]
+    
+    # --- INTELLIGENT CONTEXT SELECTION ---
+    # Find rows matching the top topic
+    topic_rows = df_24h[df_24h['topic'] == top_topic].copy()
+    
+    # We want the most descriptive summary, not just the first one.
+    # Logic: Sort by length of the summary text to find a "news-like" explanation.
+    if not topic_rows.empty:
+        if 'summary' in topic_rows.columns:
+            # Create a temporary column for length to sort by
+            topic_rows['summary_len'] = topic_rows['summary'].astype(str).str.len()
+            best_row = topic_rows.sort_values('summary_len', ascending=False).iloc[0]
+            
+            # Truncate if too long for UI
+            raw_summary = str(best_row['summary'])
+            clean_summary = raw_summary[:160] + "..." if len(raw_summary) > 160 else raw_summary
+            context_text = f"Latest Context: \"{clean_summary}\""
+        else:
+             context_text = "Analysis pending for this narrative."
+    else:
         context_text = "Emerging pattern detected."
 else:
-    top_topic = "N/A"
-    context_text = "No data available."
+    top_topic = "Monitoring..."
+    context_text = "No sufficient data in the last 24h window."
 
 # --- 2. THE PUBLIC PULSE (METRICS) ---
-st.markdown("### THE PUBLIC PULSE")
+st.markdown("### THE PUBLIC PULSE <span style='font-size: 0.9rem; color: #FFC107; font-weight: 600; margin-left: 10px;'>(Last 24 Hours)</span>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric(
         label="Conversations Audited",
         value=total_videos,
-        help="Total volume of unique data points ingested."
+        help="Total volume of unique data points ingested in the last 24 hours."
     )
 
 with col2:
@@ -338,12 +347,27 @@ with col4:
         value=top_topic,
         help="The primary vector driving engagement based on keyword velocity."
     )
-    # Dynamic Context Box
-    st.markdown(f"<div class='context-box'>{context_text}</div>", unsafe_allow_html=True)
+    # Enhanced Dynamic Trigger Display
+    st.markdown(f"""
+    <div style='
+        background-color: rgba(255, 193, 7, 0.1);
+        border-left: 3px solid #FFC107;
+        padding: 10px 12px;
+        margin-top: 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #FFC107;
+        font-weight: 600;
+        line-height: 1.4;
+    '>
+        {context_text}
+    </div>
+    """, unsafe_allow_html=True)
 
 add_spacer()
 
 # --- 3. TRAJECTORY OF TRUST (TRENDS) ---
+# NOTE: Trends still use GLOBAL history (df) to show the "Story so far" vs "Now"
 st.markdown("### THE TRAJECTORY OF TRUST")
 st.markdown("<div class='chart-caption'>Tracking how public sentiment shifts hour-by-hour in response to real-world events.</div>", unsafe_allow_html=True)
 
@@ -398,15 +422,16 @@ add_spacer()
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.markdown("### SHARE OF VOICE")
+    st.markdown("### SHARE OF VOICE <span style='font-size: 0.9rem; color: #FFC107; font-weight: 600; margin-left: 10px;'>(Last 24 Hours)</span>", unsafe_allow_html=True)
     st.markdown("<div class='chart-caption'>Which persona is dominating the microphone?</div>", unsafe_allow_html=True)
-    
-    if 'persona' in df.columns:
-        fig_persona = px.pie(df, names='persona', hole=0.6, 
+
+    # Uses df_24h strictly
+    if 'persona' in df_24h.columns and not df_24h.empty:
+        fig_persona = px.pie(df_24h, names='persona', hole=0.6,
                              color_discrete_sequence=['#FFC107', '#FFFFFF', '#444444', '#888888'])
         fig_persona.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", 
-            plot_bgcolor="rgba(0,0,0,0)", 
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"),
             showlegend=True,
             legend=dict(font=dict(size=14, color="#E0E0E0"), orientation="h", y=-0.1),
@@ -415,23 +440,25 @@ with col1:
         )
         fig_persona.update_traces(textinfo='percent', textfont_size=16)
         st.plotly_chart(fig_persona, use_container_width=True)
-        
+
         st.info("💡 **Intel:** A high 'Digital Cynic' share suggests the narrative has been hijacked by satire. Traditional messaging will likely fail here.")
 
 with col2:
-    st.markdown("### TOPIC TOXICITY SCANNER")
+    # RENAMED from 'Topic Toxicity Scanner'
+    st.markdown("### THE FRICTION RADAR <span style='font-size: 0.9rem; color: #FFC107; font-weight: 600; margin-left: 10px;'>(Last 24 Hours)</span>", unsafe_allow_html=True)
     st.markdown("<div class='chart-caption'>Where policy meets resistance (Red) or approval (Yellow).</div>", unsafe_allow_html=True)
-    
-    if 'topic' in df.columns:
-        topic_counts = df.groupby(['topic', 'sentiment']).size().reset_index(name='count')
+
+    # Uses df_24h strictly
+    if 'topic' in df_24h.columns and not df_24h.empty:
+        topic_counts = df_24h.groupby(['topic', 'sentiment']).size().reset_index(name='count')
         fig_topic = px.bar(topic_counts, x='count', y='topic', color='sentiment', orientation='h',
                             color_discrete_map={'Positive': '#FFC107', 'Negative': '#EF553B', 'Neutral': '#888888'})
-        
+
         fig_topic.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)", 
-            plot_bgcolor="rgba(0,0,0,0)", 
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="white"),
-            xaxis=dict(showgrid=True, gridcolor='#333', tickfont=dict(size=14, color="#FFFFFF"), title="Volume of Engagement"), 
+            xaxis=dict(showgrid=True, gridcolor='#333', tickfont=dict(size=14, color="#FFFFFF"), title="Volume of Engagement"),
             yaxis=dict(showgrid=False, tickfont=dict(size=15, color="#FFFFFF", weight="bold"), title=None),
             legend=dict(font=dict(size=14, color="#E0E0E0"), title=None),
             margin=dict(t=30, b=20, l=0, r=0)
@@ -448,6 +475,8 @@ if st.button("REFRESH INTELLIGENCE"):
     st.cache_data.clear()
     st.rerun()
 
+# Showing Global history in the feed is usually better for context, or change df to df_24h if you strictly want only today's news.
+# Currently set to GLOBAL (df) for reference.
 st.dataframe(
     df[['created_at', 'sentiment', 'persona', 'topic', 'summary', 'raw_comment']],
     use_container_width=True,

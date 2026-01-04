@@ -40,27 +40,37 @@ if not supabase_url or not supabase_key:
 supabase: Client = create_client(supabase_url, supabase_key)
 
 def analyze_videos():
-    """Analyze unprocessed videos and extract sentiment with cultural persona detection."""
+    """
+    Analyze unanalyzed videos, prioritizing HIGH IMPACT (Viral) content first.
+    Extracts sentiment, topic, and persona using strict hierarchical rules.
+    """
     
-    print("Fetching unanalyzed videos...")
+    print("Fetching high-impact unanalyzed videos...")
     
     try:
-        # Get list of video IDs we have already analyzed
+        # 1. Get list of video IDs we have already analyzed
         existing_logs = supabase.table("sentiment_logs").select("video_id").execute()
-        analyzed_ids = [row['video_id'] for row in existing_logs.data]
+        analyzed_ids = {row['video_id'] for row in existing_logs.data} # Use set for faster lookup
         
-        # Get all videos from the main table
-        all_videos_response = supabase.table("videos").select("id, caption").execute()
+        # 2. Fetch UNPROCESSED videos, sorted by VIEWS (Highest First)
+        # We fetch a buffer of 50 to ensure we have enough candidates after filtering
+        response = supabase.table("videos") \
+            .select("id, caption, views") \
+            .order("views", desc=True) \
+            .limit(50) \
+            .execute()
+            
+        # 3. Filter out the ones we've already done
+        candidates = [v for v in response.data if v['id'] not in analyzed_ids]
         
-        # Filter: Only keep videos that are NOT in the analyzed list
-        # Limit to 10 at a time to be safe with API limits
-        videos_to_analyze = [v for v in all_videos_response.data if v['id'] not in analyzed_ids][:10]
+        # 4. Take the Top 20 Viral Candidates
+        videos_to_analyze = candidates[:20]
         
         if not videos_to_analyze:
-            print("No new videos to analyze.")
+            print("No new viral videos to analyze.")
             return
 
-        print(f"Found {len(videos_to_analyze)} unanalyzed videos")
+        print(f"Found {len(videos_to_analyze)} high-impact videos to analyze.")
 
     except Exception as e:
         print(f"Error fetching videos: {e}")
@@ -72,19 +82,28 @@ def analyze_videos():
     for video in videos_to_analyze:
         video_id = video['id']
         caption = video.get('caption', '')
+        views = video.get('views', 0)
         
         if not caption:
             print(f"Skipping {video_id} (empty caption)")
             continue
 
-        print(f"\nProcessing {video_id}...")
+        print(f"\nProcessing {video_id} ({views} views)...")
 
-        # 3. The Prompt
+        # 3. The Prompt (Updated with Strict Hierarchy)
         prompt = f"""
         Analyze this TikTok caption regarding Malaysian PM Anwar Ibrahim.
         Caption: "{caption}"
 
-        You are a political analyst. Classify the user into ONE of these 4 specific Malaysian archetypes:
+        You are a political analyst. Your task is to categorize this content with STRICT hierarchical rules.
+
+        CRITICAL CATEGORIZATION RULES (Hierarchy):
+        1. SPECIFIC POLICY: If the text mentions subsidies, diesel, rice, taxes (SST/GST), EPF, or prices -> Topic MUST be "Cost of Living" or "Economy".
+        2. GOVERNANCE: If the text mentions corruption, MACC, court cases, or laws -> Topic MUST be "Corruption" or "Reform".
+        3. SOCIAL: If the text mentions 3R (Race, Religion, Royalty), language, or schools -> Topic MUST be "Malay Rights", "Religion", or "Education".
+        4. LEADERSHIP (Last Resort): ONLY use "Leadership" if the text is purely about the politician's popularity, image, or political moves with NO specific policy mention.
+
+        Classify the user into ONE of these 4 specific Malaysian archetypes:
         1. "Economic Pragmatist" (Focus: Cost of living, wages, business, taxes)
         2. "Heartland Conservative" (Focus: Malay rights, Islam, tradition, rural subsidies)
         3. "Urban Reformist" (Focus: Corruption, reforms, institutional competency, civil liberties)
@@ -93,7 +112,7 @@ def analyze_videos():
         Return strictly valid JSON with these keys:
         - sentiment: (String) "Positive", "Negative", or "Neutral"
         - sentiment_score: (Float) -1.0 (Negative) to 1.0 (Positive)
-        - topic: (String) The main political topic (e.g. Cost of Living, Corruption, 3R, Leadership)
+        - topic: (String) The specific policy topic based on the hierarchy above.
         - persona: (String) One of the 4 archetypes listed above.
         - sarcasm: (Boolean) true or false
         - summary: (String) A 1-sentence summary of the user's main point.
@@ -112,14 +131,12 @@ def analyze_videos():
                 print(f"⚠️ JSON Parse Error for {video_id}, skipping...")
                 continue
 
-            # --- THE CRITICAL FIX IS HERE ---
-            # If Gemini returns a List instead of an Object, grab the first item
+            # Fix: If Gemini returns a List instead of an Object, grab the first item
             if isinstance(result, list):
                 if len(result) > 0:
                     result = result[0]
                 else:
                     result = {}
-            # ---------------------------------
 
             # Map Data
             db_payload = {
@@ -145,7 +162,7 @@ def analyze_videos():
             # Sleep briefly to let the API cool down
             time.sleep(2)
 
-    print(f"\n✅ Successfully processed {processed_count}/{len(videos_to_analyze)} videos")
+    print(f"\n✅ Successfully processed {processed_count}/{len(videos_to_analyze)} high-impact videos")
 
 if __name__ == "__main__":
     analyze_videos()

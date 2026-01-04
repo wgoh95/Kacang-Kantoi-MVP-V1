@@ -16,14 +16,15 @@ if not url or not key:
 supabase = create_client(url, key)
 
 # 2. The Simulation Matrix (Psychographic Focus)
+# UPDATED: Aligned with the new "Strict Hierarchy" categories for realistic distribution
 topics = [
-    "Subsidy Rationalisation", 
-    "Cost of Living", 
-    "PADU Registration", 
-    "Digital Economy", 
-    "Corruption Crackdown", 
-    "Healthcare Reform",
-    "Exchange Rate (MYR/USD)"
+    "Cost of Living",      
+    "Economy",             
+    "Corruption",          
+    "Reform",              
+    "Malay Rights",        
+    "Education",           
+    "Leadership"           # Kept as a minority category
 ]
 
 # THE NEW MEANINGFUL CATEGORIES
@@ -40,27 +41,27 @@ templates = [
     {
         "persona": "Economic Pragmatist",
         "sentiment": "Negative",
-        "raw": "SST increase to 8% is going to kill small businesses. Margins are already thin. #economy",
+        "raw": "SST increase to 8% is killing small businesses. We can't survive these margins. #economy",
         "summary": "User worries that the SST hike will hurt SME profit margins."
     },
     {
         "persona": "Economic Pragmatist",
         "sentiment": "Positive",
-        "raw": "Ringgit strengthening slightly against USD. Good sign for imports, hope it holds.",
-        "summary": "User notes the strengthening Ringgit as a positive indicator for trade."
+        "raw": "Ringgit recovering to 4.3 is a good start. Hopefully import costs go down soon.",
+        "summary": "User views the strengthening Ringgit as a positive sign for reducing costs."
     },
     
     # Heartland Conservative (Focus: Tradition & Aid)
     {
         "persona": "Heartland Conservative",
         "sentiment": "Negative",
-        "raw": "Why cut diesel subsidies? Farmers and fishermen rely on this daily. This hurts the kampung folks.",
-        "summary": "User criticizes subsidy cuts for impacting rural livelihoods."
+        "raw": "Why disturb the diesel subsidy? Fishermen in the kampung are suffering. This isn't what we voted for.",
+        "summary": "User criticizes subsidy cuts for negatively impacting rural livelihoods."
     },
     {
         "persona": "Heartland Conservative",
         "sentiment": "Positive",
-        "raw": "Alhamdulillah, the new cash aid is helpful for B40 families before Raya.",
+        "raw": "Thank you PM for the extra cash aid before Raya. It really helps the B40 families.",
         "summary": "User expresses gratitude for government cash aid ahead of festivities."
     },
 
@@ -68,28 +69,28 @@ templates = [
     {
         "persona": "Urban Reformist",
         "sentiment": "Neutral",
-        "raw": "PADU is a good idea on paper, but the data security implementation is worrying. We need better tech governance.",
-        "summary": "User supports PADU's intent but questions its data privacy standards."
+        "raw": "The anti-corruption drive is good, but we need institutional reforms, not just arrests.",
+        "summary": "User supports anti-corruption but demands deeper institutional changes."
     },
     {
         "persona": "Urban Reformist",
         "sentiment": "Positive",
-        "raw": "Finally, some real arrests by SPRM. No more double standards for VVIPs please.",
-        "summary": "User applauds anti-corruption actions and demands equal justice."
+        "raw": "Finally addressing the monopoly in rice imports. This is the structural change we needed.",
+        "summary": "User applauds the government for breaking up economic monopolies."
     },
 
     # Digital Cynic (Focus: Hopelessness & Satire)
     {
         "persona": "Digital Cynic",
         "sentiment": "Negative",
-        "raw": "New taxes, same old broken roads. Where is my tax money actually going? 🤡 #malaysia",
-        "summary": "User uses sarcasm to highlight infrastructure failures despite tax hikes."
+        "raw": "Price of chicken goes down, price of everything else goes up. Magic show! 🤡 #malaysia",
+        "summary": "User uses sarcasm to highlight that living costs feel unchanged despite announcements."
     },
     {
         "persona": "Digital Cynic",
         "sentiment": "Neutral",
-        "raw": "Another U-turn on policy? At this point I'm just here for the memes.",
-        "summary": "User expresses apathy and amusement at policy inconsistencies."
+        "raw": "Another committee formed to study the problem? Wake me up when something actually happens.",
+        "summary": "User expresses apathy towards the formation of yet another government committee."
     }
 ]
 
@@ -100,7 +101,7 @@ for i in range(50):
     # Pick a random base template to ensure Persona matches the Tone
     template = random.choice(templates)
     
-    # Randomize Topic slightly (unless specific to template)
+    # Randomize Topic slightly (unless specific to template, logic here allows mixing)
     topic = random.choice(topics)
     
     # Create a random timestamp within the last 48 hours
