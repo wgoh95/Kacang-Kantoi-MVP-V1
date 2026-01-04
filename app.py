@@ -87,17 +87,16 @@ st.markdown("""
     
     [data-testid="stMetricValue"] {
         color: #FFF;
-        font-size: 2.8rem !important; /* Slightly smaller to prevent overflow */
+        font-size: 2.8rem !important;
         font-weight: 800;
         line-height: 1.1;
-        white-space: nowrap;          /* Prevent wrapping */
-        overflow: hidden;             /* Hide overflow */
-        text-overflow: ellipsis;      /* Add ... if too long */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
-    /* SPECIAL CLASS FOR DOMINANT TOPIC TEXT */
     div[data-testid="metric-container"] > div > div:nth-child(2) > div {
-        font-size: 2.2rem !important; /* Force smaller font specifically for values */
+        font-size: 2.2rem !important; /* Force smaller font specifically for Dominant Topic */
     }
     
     [data-testid="stMetricDelta"] {
@@ -105,17 +104,17 @@ st.markdown("""
         background-color: #111;
         padding: 4px 8px;
         border-radius: 4px;
-        font-size: 0.6rem !important;
+        font-size: 0.8rem !important;
     }
 
-    /* --- NARRATIVE CONTEXT BOX (The "Why") --- */
+    /* --- NARRATIVE CONTEXT BOX --- */
     .narrative-box {
         background-color: #111;
         border-left: 3px solid #FFC107;
         padding: 15px;
         margin-top: 10px;
         border-radius: 0 4px 4px 0;
-        height: 100%; /* Fill height */
+        height: 100%;
     }
     
     .narrative-header {
@@ -152,10 +151,12 @@ st.markdown("""
     
     .chart-caption {
         color: #777;
-        font-size: 0.9rem;
+        font-size: 0.95rem; /* Increased size for readability */
         margin-bottom: 25px;
         margin-left: 22px;
         font-weight: 400;
+        line-height: 1.4;
+        max-width: 600px;
     }
 
     /* --- DATAFRAME --- */
@@ -228,7 +229,7 @@ st.markdown(f"""
 
 # --- METRICS SECTION ---
 st.markdown("### THE PUBLIC PULSE")
-st.markdown("<div class='chart-caption'>Real-time metrics calculated from the last 24 hours of engagement.</div>", unsafe_allow_html=True)
+st.markdown("<div class='chart-caption'>Real-time situation report calculated from the last 24 hours of engagement. Hover over values for strategic definitions.</div>", unsafe_allow_html=True)
 
 if not df.empty:
     total_impact_vol = df['impact_score'].abs().sum()
@@ -241,38 +242,52 @@ if not df.empty:
         consensus_pct = 0
     
     top_topic = df['topic'].mode()[0] if not df['topic'].empty else "None"
-    
-    # Truncate topic if too long
     display_topic = (top_topic[:18] + '..') if len(top_topic) > 18 else top_topic
 
-    # LAYOUT: 4 Columns
     m1, m2, m3, m4 = st.columns(4)
     
     with m1:
-        st.metric("Audited Conversations", len(df), delta="Last 24h")
+        st.metric(
+            "Audited Conversations", 
+            len(df), 
+            delta="Last 24h",
+            help="The Sample Size: Total unique, high-velocity data points ingested and verified in the last 24 hours. Represents the raw volume of the current audit."
+        )
     
     with m2:
-        st.metric("Public Consensus", f"{consensus_pct:.1f}%", delta="Approval")
+        st.metric(
+            "Public Consensus", 
+            f"{consensus_pct:.1f}%", 
+            delta="Approval",
+            help="The Mandate: The percentage of weighted sentiment currently aligned with the narrative. A score >50% indicates net positive alignment."
+        )
         
     with m3:
-        st.metric("Resistance Level", f"{resistance_pct:.1f}%", delta="Friction", delta_color="off")
+        st.metric(
+            "Resistance Level", 
+            f"{resistance_pct:.1f}%", 
+            delta="Friction", 
+            delta_color="off",
+            help="The Friction Index: The intensity of active pushback. Tracks dissent, negative sentiment, and 3R triggers impacting political capital."
+        )
         
     with m4:
-        st.metric("Dominant Topic", display_topic)
-        # --- NARRATIVE CONTEXT (Placed Inside Col 4) ---
+        st.metric(
+            "Dominant Topic", 
+            display_topic,
+            help="The Headline Issue: The single most critical topic hijacking the national algorithm right now. This is where attention is focused."
+        )
+        
+        # --- NARRATIVE CONTEXT ---
         if latest_intel:
             content = latest_intel['content']
-            # Fallback to key driver if narrative is too long
             narrative_text = content.get('key_driver', 'Analyzing narrative patterns...')
-            
-            # If we have a proper explanation, use it but keep it short
             if 'dominant_narrative' in content:
-                # Strip out the colloquialisms in display if they exist
                 narrative_text = content['dominant_narrative'].split('.')[0] + "."
 
             st.markdown(f"""
             <div class="narrative-box">
-                <div class="narrative-header">🦅 AI Analyst Insight</div>
+                <div class="narrative-header" title="The 'Why' behind the data. Our autonomous analyst synthesizes causal factors.">🦅 AI Analyst Insight</div>
                 <div class="narrative-text">"{narrative_text}"</div>
             </div>
             """, unsafe_allow_html=True)
@@ -286,7 +301,7 @@ col_charts_1, col_charts_2 = st.columns([1, 2])
 
 with col_charts_1:
     st.markdown("### SHARE OF VOICE")
-    st.markdown("<div class='chart-caption'>Which persona is dominating the microphone?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='chart-caption'><b>The Demographic Split.</b> Who is holding the microphone? We isolate the loudest voter archetypes to reveal if the noise is coming from the base (Reformist) or the opposition (Conservative).</div>", unsafe_allow_html=True)
     
     if not df.empty:
         voice_data = df['archetype'].value_counts().reset_index()
@@ -302,7 +317,7 @@ with col_charts_1:
 
 with col_charts_2:
     st.markdown("### THE FRICTION RADAR")
-    st.markdown("<div class='chart-caption'>Where policy meets resistance (Red) or approval (Green).</div>", unsafe_allow_html=True)
+    st.markdown("<div class='chart-caption'><b>The Battlefield Map.</b> Visualizing Risk (Red) vs. Safety (Green). Topics in the top-right quadrant are high-volume/positive. Topics in the top-left are high-volume/toxic.</div>", unsafe_allow_html=True)
     
     if not df.empty:
         radar_data = df.groupby('topic').agg(volume=('topic', 'count'), avg_sentiment=('impact_score', 'mean')).reset_index()
@@ -314,7 +329,7 @@ with col_charts_2:
 
 # --- TRAJECTORY & FEED ---
 st.markdown("### THE TRAJECTORY OF TRUST")
-st.markdown("<div class='chart-caption'>Tracking how public sentiment shifts hour-by-hour.</div>", unsafe_allow_html=True)
+st.markdown("<div class='chart-caption'><b>The Hourly Shift.</b> Tracking the velocity of sentiment change. Sharp dips indicate a breaking crisis; steady climbs indicate effective policy communication.</div>", unsafe_allow_html=True)
 
 if not df.empty:
     df_trend = df.set_index('created_at').resample('H')['impact_score'].mean().reset_index()
@@ -325,7 +340,7 @@ if not df.empty:
     st.plotly_chart(fig_trend, use_container_width=True)
 
 st.markdown("### LIVE INTELLIGENCE FEED")
-st.markdown("<div class='chart-caption'>Raw data filtered for relevance.</div>", unsafe_allow_html=True)
+st.markdown("<div class='chart-caption'>The raw feed of verified conversations, filtered for relevance and impact.</div>", unsafe_allow_html=True)
 if not df.empty:
     feed_df = df[['created_at', 'topic', 'specific_trigger', 'archetype', 'impact_score', 'summary']].copy()
     st.dataframe(feed_df, use_container_width=True, column_config={"created_at": st.column_config.DatetimeColumn("Timestamp", format="D MMM, HH:mm"), "topic": "Domain", "specific_trigger": "Trigger", "archetype": "Persona", "impact_score": st.column_config.NumberColumn("Score", format="%.2f"), "summary": "AI Analysis"}, hide_index=True)
