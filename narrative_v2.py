@@ -17,7 +17,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 if not GEMINI_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("❌ Missing API Keys. Check your .env file.")
 
-# Initialize Clients (Using the NEW Google SDK)
+# Initialize Clients
 client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -26,7 +26,6 @@ def generate_daily_brief():
 
     try:
         # 1. Fetch analyzed logs from the last 24h
-        # CORRECTED: querying 'topic', not 'domain'
         response = supabase.table("sentiment_logs") \
             .select("topic, summary, archetype, sentiment, impact_score") \
             .order("created_at", desc=True) \
@@ -35,11 +34,18 @@ def generate_daily_brief():
         
         data = response.data
         if not data:
-            print("⚠️ No data found. Please run 'sentiment_engine.py' first to generate logs.")
+            print("⚠️ No data found. Please run 'sentiment_engine.py' first.")
             return
 
-        # 2. Calculate "Pulse" Metrics
-        avg_score = sum(d['impact_score'] for d in data) / len(data) if len(data) > 0 else 0
+        # 2. Calculate "Pulse" Metrics (Null-Safe Version)
+        # We filter out any rows where impact_score is None to prevent crashes
+        valid_scores = [d['impact_score'] for d in data if d.get('impact_score') is not None]
+        
+        if not valid_scores:
+            print("⚠️ Data found, but no valid impact scores. Check sentiment_engine.py.")
+            avg_score = 0
+        else:
+            avg_score = sum(valid_scores) / len(valid_scores)
         
         # 3. The "War Room" Prompt
         prompt = f"""
@@ -71,7 +77,7 @@ def generate_daily_brief():
 
         # Call Gemini 2.0 Flash
         response = client.models.generate_content(
-            model='gemini-3.0-pro',
+            model='gemini-2.0-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.4,

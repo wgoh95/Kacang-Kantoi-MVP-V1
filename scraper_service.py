@@ -40,7 +40,8 @@ SEARCH_CONFIG = {
     ],
     "resultsPerPage": 50,
     "maxItems": 50,
-    "sortType": 0,  # 0 = Relevance
+    # REVISED: Changed to 1 to prioritize "Freshness" (Recency) over Relevance
+    "sortType": 1,  
 }
 
 def safe_int(value):
@@ -72,10 +73,12 @@ def run_scraper():
     run_input = {
         "resultsPerPage": SEARCH_CONFIG["resultsPerPage"],
         "searchQueries": SEARCH_CONFIG["searchQueries"],
-        "maxItems": SEARCH_CONFIG["maxItems"]
+        "maxItems": SEARCH_CONFIG["maxItems"],
+        "sortType": SEARCH_CONFIG["sortType"]
     }
 
     print(f"🚀 Starting TikTok scraper for queries: {json.dumps(SEARCH_CONFIG['searchQueries'], ensure_ascii=False, indent=2)}...")
+    print(f"⚙️  Sort Mode: {'Recency (Fresh)' if SEARCH_CONFIG['sortType'] == 1 else 'Relevance'}")
     
     run = client.actor("clockworks/tiktok-scraper").call(run_input=run_input)
 
@@ -123,20 +126,22 @@ def save_results(items):
                  else:
                      created_at = datetime.datetime.now().isoformat()
 
-            # --- TYPO FIXED BELOW ---
+            # 2. Map Apify Data to Supabase Schema
             video_data = {
                 "id": str(video_id),
                 "caption": item.get('text', '') or item.get('desc', ''), 
                 "views": safe_int(item.get('playCount', 0)),
                 "share_count": safe_int(item.get('shareCount', 0)),
                 "like_count": safe_int(item.get('diggCount', 0)),
-                "comment_count": safe_int(item.get('commentCount', 0)), # Fixed: "comment_count" (was "coomment_count")
+                "comment_count": safe_int(item.get('commentCount', 0)),
                 "created_at": created_at,
                 "thumbnail_url": item.get('videoMeta', {}).get('coverUrl') or "",
-                "author_handle": item.get('authorMeta', {}).get('name', 'unknown')
+                "author_handle": item.get('authorMeta', {}).get('name', 'unknown'),
+                # Ensure new videos are marked as 'not analyzed' so the engine picks them up
+                "is_analyzed": False 
             }
 
-            # 2. Upsert into Supabase
+            # 3. Upsert into Supabase
             supabase.table('videos').upsert(video_data).execute()
             videos_saved += 1
 
@@ -158,11 +163,6 @@ def save_results(items):
 
 if __name__ == "__main__":
     try:
-        # OPTIONAL: If you want to skip re-scraping and use your existing data,
-        # you can comment out 'run_scraper()' and manually load the items 
-        # using the dataset ID 'PngaEActgaCOAcWoZ' from your logs.
-        # But for simplicity, running this fresh is fine.
-        
         items = run_scraper()
         save_results(items)
         
