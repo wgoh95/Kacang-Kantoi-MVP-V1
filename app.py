@@ -7,7 +7,12 @@ import os
 from dotenv import load_dotenv
 
 # 1. Config & Setup
-st.set_page_config(page_title="KACANG KANTOI", page_icon="🥜", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="KACANG KANTOI", 
+    page_icon="🥜", 
+    layout="wide", 
+    initial_sidebar_state="collapsed"
+)
 load_dotenv()
 
 # --- THE DESIGN SYSTEM (High-Readability Mode) ---
@@ -501,8 +506,8 @@ with st.expander("METHODOLOGY: HOW WE LISTEN"):
         Every 60 minutes, our autonomous system scans the ecosystem for high-velocity discussions surrounding Malaysian public policy. 
         We filter for relevance, ensuring we capture the <i>average</i> voice, not just influencers.
         <br><br>
-        <span class="methodology-header">2. THE INTELLIGENCE (Gemini 2.0 Pro)</span>
-        We employ <b>Google's Gemini 2.0 Pro</b> engine, tuned to understand Malaysian context (<i>Manglish, Bahasa Rojak, Dialects</i>). 
+        <span class="methodology-header">2. THE INTELLIGENCE (Gemini 3.0 Pro)</span>
+        We employ <b>Google's Gemini 3.0 Pro</b> engine, tuned to understand Malaysian context (<i>Manglish, Bahasa Rojak, Dialects</i>). 
         It categorizes users into 4 key archetypes:
         <ul>
             <li><span class="methodology-sub">Economic Pragmatist:</span> Focuses on wallet issues (Wages, Prices).</li>
