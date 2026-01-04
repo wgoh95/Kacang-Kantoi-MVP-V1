@@ -16,11 +16,11 @@ st.set_page_config(
 )
 load_dotenv()
 
-# --- THE DESIGN SYSTEM (High-Readability Mode) ---
+# --- THE DESIGN SYSTEM (Restored Manifesto Style) ---
 st.markdown("""
 <style>
     /* IMPORT FONT: Inter */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
     /* GLOBAL RESET */
     .stApp {
@@ -34,84 +34,94 @@ st.markdown("""
         padding-bottom: 5rem !important;
     }
 
-    /* --- HERO CARD --- */
+    /* --- HERO CARD (The "Manifesto" Look) --- */
     .hero-card {
         background-color: #FFFFFF;
         border: 1px solid #333;
-        border-top: 6px solid #FFC107;
-        padding: 3rem;
+        border-top: 6px solid #FFC107; /* Brand Yellow */
+        padding: 3.5rem;
         border-radius: 2px;
-        box-shadow: 0px 10px 40px rgba(0,0,0,0.6);
-        margin-bottom: 2rem;
+        box-shadow: 0px 10px 40px rgba(0,0,0,0.8);
+        margin-bottom: 3rem;
     }
 
     .hero-title {
-        font-size: 3.5rem !important;
+        font-size: 4rem !important;
         font-weight: 900 !important;
         color: #000000 !important;
         text-transform: uppercase;
-        line-height: 0.95;
-        margin-bottom: 0.5rem;
+        line-height: 0.9;
         letter-spacing: -2px;
+        margin-bottom: 10px;
     }
 
     .hero-subtitle {
-        font-size: 1.2rem !important;
+        font-size: 1.4rem !important;
         color: #000 !important;
         font-weight: 700 !important;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
+        letter-spacing: 1.2px;
         margin-bottom: 1.5rem;
         border-bottom: 4px solid #FFC107;
         display: inline-block;
         padding-bottom: 5px;
     }
     
-    /* WAR ROOM BOX */
-    .war-room-box {
-        background-color: #111;
-        border: 1px solid #333;
-        border-left: 4px solid #FF5252; /* Red for Alert */
-        padding: 20px;
-        border-radius: 4px;
-        margin-bottom: 30px;
-    }
-    
-    .war-room-header {
-        color: #FF5252;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-size: 0.9rem;
-        margin-bottom: 10px;
-    }
-    
-    .war-room-headline {
-        color: #FFF;
-        font-size: 1.4rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    
-    .war-room-advice {
-        color: #CCC;
-        font-style: italic;
-        font-size: 1rem;
+    .hero-copy {
+        font-size: 1.15rem;
+        color: #333;
+        font-weight: 500;
+        line-height: 1.6;
+        max-width: 800px;
     }
 
-    /* --- METRICS --- */
+    /* --- METRICS (High Readability) --- */
     [data-testid="stMetricLabel"] {
         color: #888;
-        font-size: 0.9rem !important;
+        font-size: 0.95rem !important;
         text-transform: uppercase;
         letter-spacing: 1px;
-        font-weight: 600;
+        font-weight: 700;
     }
     
     [data-testid="stMetricValue"] {
         color: #FFF;
-        font-size: 3rem !important;
+        font-size: 3.8rem !important; /* Bigger for impact */
         font-weight: 800;
+        line-height: 1.1;
+    }
+    
+    [data-testid="stMetricDelta"] {
+        font-weight: 600;
+        background-color: #111;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    /* --- NARRATIVE CONTEXT BOX (The "Why") --- */
+    .narrative-box {
+        background-color: #111;
+        border-left: 4px solid #FFC107;
+        padding: 20px 25px;
+        margin-top: 0px;
+        margin-bottom: 40px;
+        border-radius: 0 4px 4px 0;
+    }
+    
+    .narrative-header {
+        color: #FFC107;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        letter-spacing: 1px;
+    }
+    
+    .narrative-text {
+        color: #E0E0E0;
+        font-size: 1.15rem;
+        line-height: 1.6;
+        font-weight: 400;
     }
 
     /* --- CHART HEADERS --- */
@@ -119,19 +129,20 @@ st.markdown("""
         color: #FFF !important;
         text-transform: uppercase;
         font-weight: 900 !important;
-        font-size: 1.6rem !important;
-        letter-spacing: 0.5px;
-        border-left: 6px solid #FFC107;
-        padding-left: 15px;
-        margin-top: 30px !important;
-        margin-bottom: 10px !important;
+        font-size: 1.8rem !important;
+        letter-spacing: -0.5px;
+        border-left: 8px solid #FFC107;
+        padding-left: 20px;
+        margin-top: 40px !important;
+        margin-bottom: 5px !important;
     }
     
     .chart-caption {
-        color: #888;
-        font-size: 1rem;
-        margin-bottom: 20px;
-        margin-left: 22px;
+        color: #999;
+        font-size: 1.05rem;
+        margin-bottom: 25px;
+        margin-left: 30px;
+        font-weight: 400;
     }
 
     /* --- DATAFRAME --- */
@@ -151,7 +162,7 @@ def init_connection():
 
 supabase = init_connection()
 
-# --- DATA LOADING (UPDATED FOR NEW SCHEMA) ---
+# --- DATA LOADING ---
 def load_data():
     """Fetches valid sentiment logs from the last 24 hours."""
     if not supabase: return pd.DataFrame()
@@ -160,7 +171,7 @@ def load_data():
         # Calculate 24h ago timestamp
         yesterday = (datetime.utcnow() - timedelta(hours=24)).isoformat()
         
-        # UPDATED: Selects 'topic', 'archetype', 'impact_score', 'specific_trigger'
+        # Selects 'topic', 'archetype', 'impact_score', 'specific_trigger'
         response = supabase.table("sentiment_logs") \
             .select("created_at, sentiment, archetype, topic, summary, impact_score, specific_trigger, is_3r") \
             .gte("created_at", yesterday) \
@@ -169,9 +180,7 @@ def load_data():
         
         df = pd.DataFrame(response.data)
         
-        # Handle empty data
-        if df.empty:
-            return df
+        if df.empty: return df
             
         # Type Conversion
         df['created_at'] = pd.to_datetime(df['created_at'])
@@ -184,7 +193,7 @@ def load_data():
         return pd.DataFrame()
 
 def load_intelligence():
-    """Fetches the latest strategic brief from the database."""
+    """Fetches the latest strategic brief."""
     if not supabase: return None
     try:
         response = supabase.table("narrative_briefs") \
@@ -203,112 +212,91 @@ def load_intelligence():
 df = load_data()
 latest_intel = load_intelligence()
 
-# --- HERO SECTION ---
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.markdown(f"""
-    <div class="hero-card">
-        <div class="hero-title">KACANG KANTOI <span style="font-size: 1rem; vertical-align: middle; background: #000; color: #fff; padding: 4px 10px; border-radius: 4px;">LIVE BETA</span></div>
-        <div class="hero-subtitle">Political Intelligence Engine</div>
-        <div style="color: #333; font-size: 1.1rem; font-weight: 500;">
-            Monitoring the <span style="background:#FFC107; padding: 0 4px;">Malay, English, and Mandarin</span> ecosystems using Autonomous AI.
-            We quantify the gap between policy intent and public sentiment.
-        </div>
+# --- HERO SECTION (RESTORED) ---
+st.markdown(f"""
+<div class="hero-card">
+    <div class="hero-title">KACANG KANTOI <span style="font-size: 1.1rem; vertical-align: middle; background: #000; color: #fff; padding: 6px 12px; border-radius: 4px; letter-spacing: 1px;">INTEL BETA</span></div>
+    <div class="hero-subtitle">The Signal Amidst The Noise.</div>
+    <div class="hero-copy">
+        Digital conversations are noisy. Public sentiment is often invisible.
+        <br><br>
+        <b>Kacang Kantoi</b> deploys <i>autonomous intelligence</i> to audit the gap between official policy and ground reality. 
+        We scan the <span style="background:#FFC107; padding: 0 4px; font-weight:700;">Malay, English, and Mandarin</span> ecosystems to reveal what 
+        traditional polls miss: <b>The unfiltered pulse of the nation.</b>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
-with col2:
-    # --- WAR ROOM INTELLIGENCE BOX ---
-    if latest_intel:
-        content = latest_intel['content']
-        alert_color = "#FF5252" if content.get('crisis_alert') else "#4CAF50" # Red vs Green
-        alert_text = "CRISIS ALERT" if content.get('crisis_alert') else "STATUS STABLE"
-        
-        st.markdown(f"""
-        <div class="war-room-box" style="border-left: 4px solid {alert_color};">
-            <div class="war-room-header" style="color: {alert_color};">🦅 STRATEGIC BRIEFING: {alert_text}</div>
-            <div class="war-room-headline">{content.get('headline', 'Analyzing...')}</div>
-            <div style="color: #DDD; margin-bottom: 10px; font-size: 0.95rem;">
-                <b>Driver:</b> {content.get('key_driver', 'Unknown')}
-            </div>
-            <div class="war-room-advice">
-                "👉 {content.get('actionable_advice', 'No action required.')}"
-            </div>
-            <div style="margin-top: 10px; font-size: 0.8rem; color: #555;">
-                Generated: {pd.to_datetime(latest_intel['created_at']).strftime('%H:%M %p')}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("Initializing Intelligence Engine...")
-
-# --- METRICS SECTION (THE PUBLIC PULSE) ---
+# --- METRICS SECTION ---
 st.markdown("### THE PUBLIC PULSE")
 st.markdown("<div class='chart-caption'>Real-time metrics calculated from the last 24 hours of engagement.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    # 1. Net Trust Score (Average Impact Score)
+    # Calculations
     net_trust = df['impact_score'].mean()
     
-    # 2. Resistance (Negative Impact Volume)
     total_impact_vol = df['impact_score'].abs().sum()
     if total_impact_vol > 0:
         resistance_vol = df[df['impact_score'] < 0]['impact_score'].abs().sum()
         resistance_pct = (resistance_vol / total_impact_vol) * 100
+        consensus_pct = 100 - resistance_pct
     else:
         resistance_pct = 0
+        consensus_pct = 0
     
     # 3. Dominant Topic
     top_topic = df['topic'].mode()[0] if not df['topic'].empty else "None"
 
+    # METRICS ROW
     m1, m2, m3, m4 = st.columns(4)
     
     with m1:
         st.metric("Audited Conversations", len(df), delta="Last 24h")
     
     with m2:
-        # Color code the score
-        score_color = "normal" 
-        if net_trust < -0.5: score_color = "inverse" # Red
-        
-        st.metric(
-            "Net Trust Score", 
-            f"{net_trust:+.2f}", 
-            delta="Political Capital", 
-            delta_color=score_color,
-            help="Weighted score: Sentiment × Archetype Weight × Risk Multiplier"
-        )
+        st.metric("Public Consensus", f"{consensus_pct:.1f}%", delta="Approval")
         
     with m3:
         st.metric(
             "Resistance Level", 
             f"{resistance_pct:.1f}%", 
             delta="Friction",
-            delta_color="off",
-            help="Percentage of total political capital being burned by negative sentiment."
+            delta_color="off" # Grey delta
         )
         
     with m4:
+        # Display the Headline Topic Here
         st.metric("Dominant Topic", top_topic)
+
+    # --- NARRATIVE CONTEXT (THE "WHY") ---
+    # This sits immediately below the metrics to explain the "Dominant Topic"
+    if latest_intel:
+        content = latest_intel['content']
+        narrative_text = content.get('dominant_narrative', 'Analyzing narrative patterns...')
+        
+        st.markdown(f"""
+        <div class="narrative-box">
+            <div class="narrative-header">🦅 AI Analyst Context</div>
+            <div class="narrative-text">"{narrative_text}"</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 else:
     st.warning("Waiting for data stream... Check scraper status.")
 
 
-# --- VISUALIZATION ROW 1 ---
+# --- VISUALIZATION ROW ---
 col_charts_1, col_charts_2 = st.columns([1, 2])
 
 with col_charts_1:
     st.markdown("### SHARE OF VOICE")
-    st.markdown("<div class='chart-caption'>Which archetype is dominating?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='chart-caption'>Which persona is dominating the microphone?</div>", unsafe_allow_html=True)
     
     if not df.empty:
-        # UPDATED: Use 'archetype' column
         voice_data = df['archetype'].value_counts().reset_index()
         voice_data.columns = ['archetype', 'count']
         
-        # Custom Colors for your Archetypes
+        # Brand Colors
         color_map = {
             "Heartland Conservative": "#FFA500", # Orange
             "Urban Reformist": "#FFFFFF",        # White
@@ -328,20 +316,20 @@ with col_charts_1:
         fig_donut.update_layout(
             template="plotly_dark",
             showlegend=True,
-            legend=dict(orientation="h", y=-0.1),
+            legend=dict(orientation="h", y=-0.15, font=dict(size=12)),
             margin=dict(t=0, b=0, l=0, r=0),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)'
         )
+        fig_donut.update_traces(textinfo='percent', textfont_size=14)
         st.plotly_chart(fig_donut, use_container_width=True)
 
 with col_charts_2:
-    st.markdown("### BATTLEFIELD RADAR")
-    st.markdown("<div class='chart-caption'>Topic Volume vs. Net Sentiment. Red = Danger Zone.</div>", unsafe_allow_html=True)
+    st.markdown("### THE FRICTION RADAR")
+    st.markdown("<div class='chart-caption'>Where policy meets resistance (Red) or approval (Green).</div>", unsafe_allow_html=True)
     
     if not df.empty:
-        # Group by Topic (Updated from 'domain')
-        # We calculate count (Volume) and mean impact_score (Sentiment)
+        # Group by Topic for Radar
         radar_data = df.groupby('topic').agg(
             volume=('topic', 'count'),
             avg_sentiment=('impact_score', 'mean')
@@ -355,33 +343,35 @@ with col_charts_2:
             size="volume",
             text="topic",
             color_continuous_scale="RdYlGn", # Red to Green
-            range_color=[-2, 2]
+            range_color=[-2, 2],
+            size_max=60
         )
         
-        fig_radar.update_traces(textposition='top center', marker=dict(line=dict(width=1, color='white')))
+        fig_radar.update_traces(textposition='top center', textfont=dict(size=14, color="white"))
         fig_radar.update_layout(
             template="plotly_dark",
             xaxis_title="Engagement Volume",
             yaxis_title="Net Sentiment (Impact)",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=False
+            showlegend=False,
+            margin=dict(t=20, b=20, l=0, r=0)
         )
-        # Add Reference Lines
+        # Baseline
         fig_radar.add_hline(y=0, line_width=1, line_dash="dash", line_color="gray")
         
         st.plotly_chart(fig_radar, use_container_width=True)
 
 # --- TRAJECTORY CHART ---
-st.markdown("### SENTIMENT TRAJECTORY")
-st.markdown("<div class='chart-caption'>Hourly shift in Net Trust Score.</div>", unsafe_allow_html=True)
+st.markdown("### THE TRAJECTORY OF TRUST")
+st.markdown("<div class='chart-caption'>Tracking how public sentiment shifts hour-by-hour.</div>", unsafe_allow_html=True)
 
 if not df.empty:
     # Resample to Hourly
     df_trend = df.set_index('created_at').resample('H')['impact_score'].mean().reset_index()
     
     fig_trend = px.line(df_trend, x='created_at', y='impact_score', markers=True)
-    fig_trend.update_traces(line_color='#FFC107', line_width=3)
+    fig_trend.update_traces(line_color='#FFC107', line_width=4, marker=dict(size=8, color='#FFF'))
     fig_trend.add_hline(y=0, line_dash="dash", line_color="white", annotation_text="Neutral Baseline")
     
     fig_trend.update_layout(
@@ -389,7 +379,8 @@ if not df.empty:
         yaxis_title="Net Trust Score",
         xaxis_title=None,
         paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(0,0,0,0)',
+        hovermode="x unified"
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -398,7 +389,6 @@ st.markdown("### LIVE INTELLIGENCE FEED")
 st.markdown("<div class='chart-caption'>Raw data filtered for relevance.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    # UPDATED: Columns match the NEW schema
     feed_df = df[['created_at', 'topic', 'specific_trigger', 'archetype', 'impact_score', 'summary']].copy()
     
     st.dataframe(
@@ -415,22 +405,17 @@ if not df.empty:
         hide_index=True
     )
 
-# --- METHODOLOGY FOOTER ---
-with st.expander("METHODOLOGY: THE 'KACANG KANTOI' ALGORITHM"):
+# --- FOOTER ---
+with st.expander("METHODOLOGY: HOW WE LISTEN"):
     st.markdown("""
-    #### 1. The Harvest (Real-Time)
-    Every 60 minutes, we scrape TikTok for trilingual keywords (Malay, English, Mandarin) related to Malaysian politics. We sort by **Recency** to capture breaking news.
+    #### 1. THE HARVEST
+    Every 60 minutes, our autonomous system scans the ecosystem for high-velocity discussions. We filter for relevance, ensuring we capture the *average* voice, not just influencers.
     
-    #### 2. The Intelligence (Gemini 2.0 Flash)
-    We use a fine-tuned prompt to classify content into 4 Archetypes and detect "3R" (Race, Religion, Royalty) risks.
+    #### 2. THE INTELLIGENCE (Gemini 2.0 Pro)
+    We employ Google's Gemini 2.0 Pro engine, tuned to understand Malaysian context (*Manglish, Bahasa Rojak*). It categorizes content into 5 Mutually Exclusive Domains (e.g., Economic Anxiety, Institutional Integrity).
     
-    #### 3. The Net Trust Score (NTS)
-    We don't just count likes. We calculate **Political Impact**:
-    $$ NTS = Sentiment \\times Archetype Weight \\times Risk Multiplier $$
-    
-    * **Heartland Conservative (2.5x):** High electoral impact.
-    * **Economic Pragmatist (1.5x):** Swing voter impact.
-    * **Urban Reformist (1.0x):** Base voter impact.
-    * **Digital Cynic (0.5x):** Low impact (noise).
-    * **3R Risk:** If a topic touches 3R, it gets a **1.5x multiplier** on negative sentiment.
+    #### 3. THE METRICS
+    * **Public Consensus:** The ratio of Positive to Total voices.
+    * **Resistance Level:** The ratio of Negative to Total voices.
+    * **Dominant Narrative:** AI-generated summary of the highest velocity topic.
     """)
