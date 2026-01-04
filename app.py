@@ -105,7 +105,7 @@ st.markdown("""
         background-color: #111;
         padding: 4px 8px;
         border-radius: 4px;
-        font-size: 0.8rem !important;
+        font-size: 0.6rem !important;
     }
 
     /* --- NARRATIVE CONTEXT BOX (The "Why") --- */
