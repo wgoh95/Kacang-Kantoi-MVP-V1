@@ -179,13 +179,13 @@ def init_connection():
 
 supabase = init_connection()
 
-# Fetch Data
-@st.cache_data(ttl=60)
+# Fetch Raw Logs (The Evidence)
+@st.cache_data(ttl=3600)  # REFRESH HOURLY
 def get_data():
     if not supabase: return pd.DataFrame()
     try:
         # Fetching all records sorted by time
-        response = supabase.table("sentiment_logs").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("sentiment_logs").select("*").order("created_at", desc=True).limit(2000).execute()
         df = pd.DataFrame(response.data)
         if not df.empty:
             # Ensure proper datetime conversion with UTC
@@ -195,7 +195,20 @@ def get_data():
     except:
         return pd.DataFrame()
 
+# Fetch Narrative Briefs (The AI Analysis)
+@st.cache_data(ttl=3600) # REFRESH HOURLY
+def get_narrative():
+    if not supabase: return None
+    try:
+        response = supabase.table("narrative_briefs").select("content").order("created_at", desc=True).limit(1).execute()
+        if response.data:
+            return response.data[0]['content']
+        return None
+    except:
+        return None
+
 df = get_data()
+narrative_data = get_narrative()
 
 # Create 24-hour filtered dataframe for real-time data focus
 now_utc = pd.Timestamp.now(tz='UTC')
@@ -289,33 +302,23 @@ if not previous_window.empty:
             delta_resistance = f"{diff_neg:+.1f}% vs 24h ago"
             delta_color_resistance = "inverse" # Red if up, Green if down
 
-# 6. Dominant Conversation & Dynamic Context (Last 24 Hours)
-if not df_24h.empty and 'topic' in df_24h.columns and not df_24h['topic'].empty:
-    top_topic = df_24h['topic'].mode()[0]
-    
-    # --- INTELLIGENT CONTEXT SELECTION ---
-    # Find rows matching the top topic
-    topic_rows = df_24h[df_24h['topic'] == top_topic].copy()
-    
-    # We want the most descriptive summary, not just the first one.
-    # Logic: Sort by length of the summary text to find a "news-like" explanation.
-    if not topic_rows.empty:
-        if 'summary' in topic_rows.columns:
-            # Create a temporary column for length to sort by
-            topic_rows['summary_len'] = topic_rows['summary'].astype(str).str.len()
-            best_row = topic_rows.sort_values('summary_len', ascending=False).iloc[0]
-            
-            # Truncate if too long for UI
-            raw_summary = str(best_row['summary'])
-            clean_summary = raw_summary[:160] + "..." if len(raw_summary) > 160 else raw_summary
-            context_text = f"Latest Context: \"{clean_summary}\""
-        else:
-             context_text = "Analysis pending for this narrative."
-    else:
-        context_text = "Emerging pattern detected."
+# 6. Dominant Conversation (INTELLIGENT MODE)
+# Checks if the Narrative Agent has produced a report. If not, falls back to raw stats.
+if narrative_data:
+    top_topic = narrative_data.get('headline', 'Analyzing...')
+    # Get the narrative hook
+    try:
+        context_text = narrative_data['top_issues'][0]['narrative']
+    except:
+        context_text = "Detailed narrative pending..."
 else:
-    top_topic = "Monitoring..."
-    context_text = "No sufficient data in the last 24h window."
+    # FALLBACK LOGIC
+    if not df_24h.empty and 'topic' in df_24h.columns and not df_24h['topic'].empty:
+        top_topic = df_24h['topic'].mode()[0]
+        context_text = "Emerging pattern detected based on raw volume."
+    else:
+        top_topic = "Monitoring..."
+        context_text = "No sufficient data in the last 24h window."
 
 # --- 2. THE PUBLIC PULSE (METRICS) ---
 st.markdown("### THE PUBLIC PULSE <span style='font-size: 0.9rem; color: #FFC107; font-weight: 600; margin-left: 10px;'>(Last 24 Hours)</span>", unsafe_allow_html=True)
@@ -347,32 +350,49 @@ with col3:
     )
 
 with col4:
+    # Displaying the AI Headline here
     st.metric(
-        label="Dominant Conversation",
-        value=top_topic,
-        help="The primary vector driving engagement based on keyword velocity."
+        label="Dominant Narrative",
+        value="See Below 👇", 
+        help="The primary theme driving engagement."
     )
+    
     # Enhanced Dynamic Trigger Display
     st.markdown(f"""
     <div style='
         background-color: rgba(255, 193, 7, 0.1);
         border-left: 3px solid #FFC107;
         padding: 10px 12px;
-        margin-top: 8px;
+        margin-top: -15px; 
         border-radius: 4px;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: #FFC107;
         font-weight: 600;
         line-height: 1.4;
     '>
-        {context_text}
+        {top_topic}
     </div>
     """, unsafe_allow_html=True)
+
+# Narrative Context Box (Full Width)
+st.markdown(f"""
+<div style='
+    margin-top: 15px;
+    padding: 15px;
+    border: 1px solid #333;
+    background-color: #111;
+    color: #CCC;
+    font-size: 1rem;
+    font-style: italic;
+    border-radius: 4px;
+'>
+    <b>🎙️ AI Analyst Note:</b> "{context_text}"
+</div>
+""", unsafe_allow_html=True)
 
 add_spacer()
 
 # --- 3. TRAJECTORY OF TRUST (TRENDS) ---
-# NOTE: Trends still use GLOBAL history (df) to show the "Story so far" vs "Now"
 st.markdown("### THE TRAJECTORY OF TRUST")
 st.markdown("<div class='chart-caption'>Tracking how public sentiment shifts hour-by-hour in response to real-world events.</div>", unsafe_allow_html=True)
 
@@ -449,13 +469,14 @@ with col1:
         st.info("💡 **Intel:** A high 'Digital Cynic' share suggests the narrative has been hijacked by satire. Traditional messaging will likely fail here.")
 
 with col2:
-    # RENAMED from 'Topic Toxicity Scanner'
     st.markdown("### THE FRICTION RADAR <span style='font-size: 0.9rem; color: #FFC107; font-weight: 600; margin-left: 10px;'>(Last 24 Hours)</span>", unsafe_allow_html=True)
     st.markdown("<div class='chart-caption'>Where policy meets resistance (Red) or approval (Yellow).</div>", unsafe_allow_html=True)
 
     # Uses df_24h strictly
     if 'topic' in df_24h.columns and not df_24h.empty:
+        # Group by the MECE Domain (topic) and Sentiment
         topic_counts = df_24h.groupby(['topic', 'sentiment']).size().reset_index(name='count')
+        
         fig_topic = px.bar(topic_counts, x='count', y='topic', color='sentiment', orientation='h',
                             color_discrete_map={'Positive': '#FFC107', 'Negative': '#EF553B', 'Neutral': '#888888'})
 
@@ -480,16 +501,21 @@ if st.button("REFRESH INTELLIGENCE"):
     st.cache_data.clear()
     st.rerun()
 
-# Showing Global history in the feed is usually better for context, or change df to df_24h if you strictly want only today's news.
-# Currently set to GLOBAL (df) for reference.
+# Check if 'specific_trigger' exists (it should with new schema)
+cols_to_show = ['created_at', 'sentiment', 'topic']
+if 'specific_trigger' in df.columns:
+    cols_to_show.append('specific_trigger')
+cols_to_show.extend(['persona', 'summary', 'raw_comment'])
+
 st.dataframe(
-    df[['created_at', 'sentiment', 'persona', 'topic', 'summary', 'raw_comment']],
+    df[cols_to_show],
     use_container_width=True,
     column_config={
         "created_at": st.column_config.DatetimeColumn("TIMESTAMP", format="D MMM, HH:mm"),
         "sentiment": st.column_config.TextColumn("SENTIMENT"),
+        "topic": st.column_config.TextColumn("DOMAIN"),
+        "specific_trigger": st.column_config.TextColumn("TRIGGER ISSUE"), # NEW COLUMN
         "persona": st.column_config.TextColumn("SEGMENT"),
-        "topic": st.column_config.TextColumn("THEME"),
         "summary": st.column_config.TextColumn("AI ANALYSIS", width="large"),
         "raw_comment": st.column_config.TextColumn("SOURCE CONTENT", width="medium"),
     },
@@ -506,20 +532,21 @@ with st.expander("METHODOLOGY: HOW WE LISTEN"):
         Every 60 minutes, our autonomous system scans the ecosystem for high-velocity discussions surrounding Malaysian public policy. 
         We filter for relevance, ensuring we capture the <i>average</i> voice, not just influencers.
         <br><br>
-        <span class="methodology-header">2. THE INTELLIGENCE (Gemini 3.0 Pro)</span>
-        We employ <b>Google's Gemini 3.0 Pro</b> engine, tuned to understand Malaysian context (<i>Manglish, Bahasa Rojak, Dialects</i>). 
-        It categorizes users into 4 key archetypes:
+        <span class="methodology-header">2. THE INTELLIGENCE (Gemini 2.0 Pro)</span>
+        We employ <b>Google's Gemini 2.0 Pro</b> engine, tuned to understand Malaysian context (<i>Manglish, Bahasa Rojak, Dialects</i>). 
+        It categorizes content into 5 Mutually Exclusive Domains:
         <ul>
-            <li><span class="methodology-sub">Economic Pragmatist:</span> Focuses on wallet issues (Wages, Prices).</li>
-            <li><span class="methodology-sub">Urban Reformist:</span> Focuses on governance, corruption, and civil liberties.</li>
-            <li><span class="methodology-sub">Heartland Conservative:</span> Focuses on tradition, religion, and rural identity.</li>
-            <li><span class="methodology-sub">Digital Cynic:</span> Uses satire and memes to express disillusionment.</li>
+            <li><span class="methodology-sub">Economic Anxiety:</span> Cost of Living, Wages, Taxes.</li>
+            <li><span class="methodology-sub">Institutional Integrity:</span> Corruption, Law, Reforms.</li>
+            <li><span class="methodology-sub">Identity Politics:</span> 3R, Language, Education.</li>
+            <li><span class="methodology-sub">Public Competency:</span> Infrastructure, Systems, Transport.</li>
+            <li><span class="methodology-sub">Political Maneuvering:</span> Elections, Coalition Dynamics.</li>
         </ul>
         <br>
         <span class="methodology-header">3. THE METRICS</span>
         <span class="methodology-sub">Public Consensus:</span> The ratio of Positive to Total voices.<br>
         <span class="methodology-sub">Resistance Level:</span> The ratio of Negative to Total voices.<br>
-        <span class="methodology-sub">Dominant Conversation:</span> The primary theme driving engagement (e.g., Cost of Living, Leadership).
+        <span class="methodology-sub">Dominant Narrative:</span> AI-generated summary of the highest velocity topic.
         <br><br>
         <i>Disclaimer: This tool analyzes specific keywords and relies on generative AI interpretation. It is designed for trend analysis, not statistical polling.</i>
     </div>
