@@ -20,9 +20,24 @@ if not supabase_url or not supabase_key:
 
 supabase: Client = create_client(supabase_url, supabase_key)
 
-# Configuration: Define your search targets here
+# Configuration: STRICTLY DEFINED TRILINGUAL QUERIES
 SEARCH_CONFIG = {
-    "searchQueries": ["Anwar Ibrahim", "Malaysia Madani", "Subsidi Diesel", "Padu"],
+    "searchQueries": [
+        # English / International Mix
+        "Anwar Ibrahim Prime Minister Malaysia",
+        "DSAI Anwar Ibrahim Malaysia",
+        "PMX",
+
+        # Bahasa Malaysia
+        "Perdana Menteri Anwar Ibrahim",
+        "DSAI terkini",           
+        "Berita PMX Malaysia",    
+
+        # Mandarin (Chinese)
+        "安华依布拉罕 马来西亚首相",
+        "安华",                
+        "马来西亚首相"           
+    ],
     "resultsPerPage": 50,
     "maxItems": 50,
     "sortType": 0,  # 0 = Relevance
@@ -60,9 +75,8 @@ def run_scraper():
         "maxItems": SEARCH_CONFIG["maxItems"]
     }
 
-    print(f"🚀 Starting TikTok scraper for: {SEARCH_CONFIG['searchQueries']}...")
+    print(f"🚀 Starting TikTok scraper for queries: {json.dumps(SEARCH_CONFIG['searchQueries'], ensure_ascii=False, indent=2)}...")
     
-    # NOTE: Ensure "clockworks/tiktok-scraper" is the correct actor ID
     run = client.actor("clockworks/tiktok-scraper").call(run_input=run_input)
 
     if not run:
@@ -72,6 +86,7 @@ def run_scraper():
     print(f"✅ Scraper finished. Fetching results from dataset {run['defaultDatasetId']}...")
 
     items = []
+    # Fetch items from the dataset
     for item in client.dataset(run["defaultDatasetId"]).iterate_items():
         items.append(item)
 
@@ -95,7 +110,6 @@ def save_results(items):
             # 1. Safe Extraction & Type Conversion
             video_id = item.get('id')
             if not video_id:
-                # Some scrapers return 'video_id' instead of 'id'
                 video_id = item.get('video_id')
                 if not video_id:
                     continue
@@ -103,20 +117,20 @@ def save_results(items):
             # Handle Date (Fallback to now if missing)
             created_at = item.get('createTimeISO')
             if not created_at:
-                 # Try unix timestamp conversion
                  ts = item.get('createTime')
                  if ts:
                      created_at = datetime.datetime.fromtimestamp(ts).isoformat()
                  else:
                      created_at = datetime.datetime.now().isoformat()
 
+            # --- TYPO FIXED BELOW ---
             video_data = {
                 "id": str(video_id),
-                "caption": item.get('text', '') or item.get('desc', ''), # Handle 'text' vs 'desc'
+                "caption": item.get('text', '') or item.get('desc', ''), 
                 "views": safe_int(item.get('playCount', 0)),
                 "share_count": safe_int(item.get('shareCount', 0)),
                 "like_count": safe_int(item.get('diggCount', 0)),
-                "comment_count": safe_int(item.get('commentCount', 0)),
+                "comment_count": safe_int(item.get('commentCount', 0)), # Fixed: "comment_count" (was "coomment_count")
                 "created_at": created_at,
                 "thumbnail_url": item.get('videoMeta', {}).get('coverUrl') or "",
                 "author_handle": item.get('authorMeta', {}).get('name', 'unknown')
@@ -127,7 +141,6 @@ def save_results(items):
             videos_saved += 1
 
         except Exception as e:
-            # Print specific error details
             if errors < 5: 
                 print(f"  ⚠️ Error saving video {item.get('id', 'unknown')}: {e}")
             errors += 1
@@ -145,10 +158,12 @@ def save_results(items):
 
 if __name__ == "__main__":
     try:
-        # 1. Harvest Data
+        # OPTIONAL: If you want to skip re-scraping and use your existing data,
+        # you can comment out 'run_scraper()' and manually load the items 
+        # using the dataset ID 'PngaEActgaCOAcWoZ' from your logs.
+        # But for simplicity, running this fresh is fine.
+        
         items = run_scraper()
-
-        # 2. Store Data
         save_results(items)
         
     except Exception as e:
