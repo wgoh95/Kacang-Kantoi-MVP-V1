@@ -26,15 +26,16 @@ SEARCH_CONFIG = {
         # English / International Mix
         "Anwar Ibrahim Prime Minister Malaysia",
         "DSAI Anwar Ibrahim Malaysia",
-        "PMX",
+        "PMX Malaysia",
 
         # Bahasa Malaysia
         "Perdana Menteri Anwar Ibrahim",
-        "DSAI terkini",           
-        "Berita PMX Malaysia",    
+        "DSAI",           
+        "Perdana Menteri Anwar",    
 
         # Mandarin (Chinese)
         "安华依布拉罕 马来西亚首相",
+        "拿督斯里安华",
         "安华",                
         "马来西亚首相"           
     ],

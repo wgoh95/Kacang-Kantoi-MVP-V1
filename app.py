@@ -9,160 +9,105 @@ from dotenv import load_dotenv
 
 # 1. Config & Setup
 st.set_page_config(
-    page_title="KACANG KANTOI | War Room", 
+    page_title="KACANG KANTOI | The Memory Guard", 
     page_icon="🥜", 
     layout="wide", 
     initial_sidebar_state="collapsed"
 )
 load_dotenv()
 
-# --- THE DESIGN SYSTEM ---
+# --- THE "TRUTH TELLER" DESIGN SYSTEM ---
 st.markdown("""
 <style>
-    /* IMPORT FONT: Inter */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    /* IMPORT FONTS: Rubik (Headlines) & Inter (Body) */
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&family=Inter:wght@300;400;600;800&display=swap');
 
     /* GLOBAL RESET */
-    .stApp {
-        background-color: #050505;
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* REMOVE PADDING */
-    .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 5rem !important;
-    }
+    .stApp { background-color: #050505; font-family: 'Inter', sans-serif; }
+    .block-container { padding-top: 2rem !important; padding-bottom: 5rem !important; }
 
     /* --- HERO CARD --- */
     .hero-card {
         background-color: #FFFFFF;
-        border: 1px solid #333;
-        border-top: 6px solid #FFC107; /* Brand Yellow */
+        border: 1px solid #222;
+        border-left: 10px solid #FFC107; /* Brand Yellow */
         padding: 3rem;
         border-radius: 2px;
-        box-shadow: 0px 10px 40px rgba(0,0,0,0.8);
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
     }
-
+    .hero-label {
+        color: #FFC107; font-family: 'Rubik', sans-serif; font-weight: 700;
+        letter-spacing: 2px; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px;
+    }
     .hero-title {
-        font-size: 3.8rem !important;
-        font-weight: 900 !important;
-        color: #000000 !important;
-        text-transform: uppercase;
-        line-height: 0.9;
-        letter-spacing: -2px;
-        margin-bottom: 10px;
+        font-family: 'Rubik', sans-serif; font-size: 4.5rem !important; font-weight: 900 !important;
+        color: #000000 !important; text-transform: uppercase; line-height: 0.9;
     }
-
-    .hero-subtitle {
-        font-size: 1.2rem !important;
-        color: #000 !important;
-        font-weight: 700 !important;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        margin-bottom: 1.5rem;
-        border-bottom: 4px solid #FFC107;
-        display: inline-block;
-        padding-bottom: 5px;
-    }
-    
+    .hero-title-highlight { color: #FFC107 !important; }
     .hero-copy {
-        font-size: 1.1rem;
-        color: #333;
-        font-weight: 500;
-        line-height: 1.5;
-        max-width: 800px;
+        font-family: 'Inter', sans-serif; font-size: 1.15rem; color: #222; font-weight: 500;
+        line-height: 1.6; margin-top: 1.5rem; max-width: 800px;
+        border-left: 4px solid #000; padding-left: 20px;
     }
 
-    /* --- METRICS (Revised for Fit) --- */
+    /* --- METRICS --- */
     [data-testid="stMetricLabel"] {
-        color: #888;
-        font-size: 0.85rem !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-weight: 700;
-        margin-bottom: 5px !important;
+        font-family: 'Rubik', sans-serif; color: #888; font-size: 0.8rem !important;
+        text-transform: uppercase; letter-spacing: 1px; font-weight: 500;
     }
-    
     [data-testid="stMetricValue"] {
-        color: #FFF;
-        font-size: 2.8rem !important;
-        font-weight: 800;
-        line-height: 1.1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    div[data-testid="metric-container"] > div > div:nth-child(2) > div {
-        font-size: 2.2rem !important; /* Force smaller font specifically for Dominant Topic */
-    }
-    
-    [data-testid="stMetricDelta"] {
-        font-weight: 600;
-        background-color: #111;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.8rem !important;
+        font-family: 'Rubik', sans-serif; color: #FFF; font-size: 2.5rem !important; font-weight: 700;
     }
 
-    /* --- NARRATIVE CONTEXT BOX --- */
+    /* --- SIGNAL BOARD (Custom Container) --- */
+    .signal-box {
+        background-color: #111; border: 1px solid #333; padding: 15px; border-radius: 4px; margin-bottom: 10px;
+    }
+    .signal-title {
+        font-family: 'Rubik', sans-serif; color: #FFF; font-size: 1rem; font-weight: 700; 
+        text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 5px;
+    }
+    .signal-item {
+        font-family: 'Inter', sans-serif; font-size: 0.9rem; color: #CCC; 
+        margin-bottom: 5px; display: flex; justify-content: space-between;
+    }
+    .signal-score-pos { color: #00E396; font-weight: 700; }
+    .signal-score-neg { color: #FF4560; font-weight: 700; }
+
+    /* --- NARRATIVE BOX --- */
     .narrative-box {
-        background-color: #111;
-        border-left: 3px solid #FFC107;
-        padding: 15px;
-        margin-top: 10px;
-        border-radius: 0 4px 4px 0;
-        height: 100%;
+        background-color: #111; border: 1px solid #333; border-left: 4px solid #FFC107;
+        padding: 20px; height: 100%;
     }
-    
     .narrative-header {
-        color: #FFC107;
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        margin-bottom: 6px;
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
+        font-family: 'Rubik', sans-serif; color: #FFF; font-weight: 900; 
+        text-transform: uppercase; font-size: 1.4rem; margin-bottom: 5px; letter-spacing: 0.5px;
     }
-    
+    .narrative-sub {
+        font-family: 'Rubik', sans-serif; color: #FFC107; font-size: 0.8rem;
+        text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; font-weight: 700;
+    }
     .narrative-text {
-        color: #CCC;
-        font-size: 0.95rem;
-        line-height: 1.4;
-        font-weight: 400;
-        font-style: italic;
+        font-family: 'Inter', sans-serif; color: #CCC; font-size: 1.05rem; line-height: 1.5; font-style: italic;
     }
 
     /* --- CHART HEADERS --- */
     h3 {
-        color: #FFF !important;
-        text-transform: uppercase;
-        font-weight: 900 !important;
-        font-size: 1.6rem !important;
-        letter-spacing: -0.5px;
-        border-left: 6px solid #FFC107;
-        padding-left: 15px;
-        margin-top: 40px !important;
-        margin-bottom: 5px !important;
+        font-family: 'Rubik', sans-serif; color: #FFF !important; text-transform: uppercase;
+        font-weight: 900 !important; font-size: 2rem !important; margin-top: 50px !important;
+        border-left: 6px solid #FFC107; padding-left: 15px;
+    }
+    .chart-caption {
+        font-family: 'Inter', sans-serif; color: #888; font-size: 0.95rem; margin-bottom: 25px; margin-left: 22px; max-width: 650px;
     }
     
-    .chart-caption {
-        color: #777;
-        font-size: 0.95rem; /* Increased size for readability */
-        margin-bottom: 25px;
-        margin-left: 22px;
-        font-weight: 400;
-        line-height: 1.4;
-        max-width: 600px;
+    /* --- DATAFRAME & METHODOLOGY --- */
+    [data-testid="stDataFrame"] { font-family: 'Inter', sans-serif; }
+    .methodology-header {
+        color: #FFC107; font-family: 'Rubik'; text-transform: uppercase; margin-bottom: 5px; font-size: 1rem;
     }
-
-    /* --- DATAFRAME --- */
-    [data-testid="stDataFrame"] {
-        border: 1px solid #222;
-        background-color: #0A0A0A;
+    .methodology-text {
+        font-family: 'Inter'; color: #CCC; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -180,6 +125,7 @@ supabase = init_connection()
 def load_data():
     if not supabase: return pd.DataFrame()
     try:
+        # Fetch last 24 hours of data
         yesterday = (datetime.utcnow() - timedelta(hours=24)).isoformat()
         response = supabase.table("sentiment_logs") \
             .select("created_at, sentiment, archetype, topic, summary, impact_score, specific_trigger, is_3r") \
@@ -212,146 +158,233 @@ def load_intelligence():
 df = load_data()
 latest_intel = load_intelligence()
 
-# --- HERO SECTION ---
+# --- HERO SECTION: THE MANIFESTO ---
 st.markdown(f"""
 <div class="hero-card">
-    <div class="hero-title">KACANG KANTOI <span style="font-size: 1rem; vertical-align: middle; background: #000; color: #fff; padding: 6px 12px; border-radius: 4px; letter-spacing: 1px;">INTEL BETA</span></div>
-    <div class="hero-subtitle">The Signal Amidst The Noise.</div>
+    <div class="hero-label">OUR MISSION</div>
+    <div class="hero-title">BEYOND THE <br><span class="hero-title-highlight">WAYANG.</span></div>
     <div class="hero-copy">
-        Digital conversations are noisy. Public sentiment is often invisible.
+        <b>Kacang Kantoi</b> exists because Malaysian politics is theater. 
+        While politicians rely on 3R distractions and short memories, we rely on <b>receipts</b>.
         <br><br>
-        <b>Kacang Kantoi</b> deploys <i>autonomous intelligence</i> to audit the gap between official policy and ground reality. 
-        We scan the <span style="background:#FFC107; padding: 0 4px; font-weight:700;">Malay, English, and Mandarin</span> ecosystems to reveal what 
-        traditional polls miss: <b>The unfiltered pulse of the nation.</b>
+        We are the nation's <b>Memory Guard</b>. We track the gap between what they say in Parliament and what you feel on the street.
+        No jargon. No spin. Just the data.
+        <br><br>
+        <i>Simple. Snackable. Undeniable.</i>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# --- METRICS SECTION ---
-st.markdown("### THE PUBLIC PULSE")
-st.markdown("<div class='chart-caption'>Real-time situation report calculated from the last 24 hours of engagement. Hover over values for strategic definitions.</div>", unsafe_allow_html=True)
+# --- METRICS: THE REALITY CHECK ---
+st.markdown("### THE REALITY CHECK")
+st.markdown("<div class='chart-caption'>The live scorecard from the last 24 hours. We audit every digital conversation to see if the government is passing or failing.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    total_impact_vol = df['impact_score'].abs().sum()
-    if total_impact_vol > 0:
+    # --- MATH LOGIC ---
+    total_abs_impact = df['impact_score'].abs().sum()
+    
+    if total_abs_impact > 0:
         resistance_vol = df[df['impact_score'] < 0]['impact_score'].abs().sum()
-        resistance_pct = (resistance_vol / total_impact_vol) * 100
+        resistance_pct = (resistance_vol / total_abs_impact) * 100
         consensus_pct = 100 - resistance_pct
     else:
         resistance_pct = 0
         consensus_pct = 0
     
-    top_topic = df['topic'].mode()[0] if not df['topic'].empty else "None"
-    display_topic = (top_topic[:18] + '..') if len(top_topic) > 18 else top_topic
-
+    # --- UI LAYOUT ---
     m1, m2, m3, m4 = st.columns(4)
     
     with m1:
         st.metric(
-            "Audited Conversations", 
+            "Voices Scanned", 
             len(df), 
-            delta="Last 24h",
-            help="The Sample Size: Total unique, high-velocity data points ingested and verified in the last 24 hours. Represents the raw volume of the current audit."
+            delta="24h Volume", 
+            help="SAMPLE SIZE: The number of real, verified conversations (comments/videos) we analyzed today. We filter out bots to hear real people."
         )
-    
     with m2:
         st.metric(
-            "Public Consensus", 
+            "Approval Score", 
             f"{consensus_pct:.1f}%", 
-            delta="Approval",
-            help="The Mandate: The percentage of weighted sentiment currently aligned with the narrative. A score >50% indicates net positive alignment."
+            delta="Support",
+            help="THE MANDATE: How much political capital the government has right now. If this is above 50%, they are safe. If below, they are losing the room."
         )
-        
     with m3:
         st.metric(
-            "Resistance Level", 
+            "Anger Level", 
             f"{resistance_pct:.1f}%", 
             delta="Friction", 
-            delta_color="off",
-            help="The Friction Index: The intensity of active pushback. Tracks dissent, negative sentiment, and 3R triggers impacting political capital."
+            delta_color="inverse",
+            help="RESISTANCE: This measures active anger. Not just people who disagree, but people who are fighting back. High numbers here mean policy failure."
         )
-        
     with m4:
-        st.metric(
-            "Dominant Topic", 
-            display_topic,
-            help="The Headline Issue: The single most critical topic hijacking the national algorithm right now. This is where attention is focused."
-        )
-        
-        # --- NARRATIVE CONTEXT ---
+        # NARRATIVE BOX (The synthesis)
         if latest_intel:
             content = latest_intel['content']
-            narrative_text = content.get('key_driver', 'Analyzing narrative patterns...')
-            if 'dominant_narrative' in content:
-                narrative_text = content['dominant_narrative'].split('.')[0] + "."
-
+            headline = content.get('headline', 'System Stable')
+            narrative = content.get('public_narrative', content.get('dominant_narrative', 'Analyzing data streams...'))
+            
             st.markdown(f"""
             <div class="narrative-box">
-                <div class="narrative-header" title="The 'Why' behind the data. Our autonomous analyst synthesizes causal factors.">🦅 AI Analyst Insight</div>
-                <div class="narrative-text">"{narrative_text}"</div>
+                <div class="narrative-sub">MEMORY GUARD SAYS:</div>
+                <div class="narrative-header">{headline}</div>
+                <div class="narrative-text">"{narrative}"</div>
             </div>
             """, unsafe_allow_html=True)
+        else:
+            st.info("Initializing Analyst...")
+
+    # --- THE SIGNAL BOARD (Simplified) ---
+    with st.expander("🔻 TAP TO SEE WHAT'S DRIVING THE NUMBERS", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        
+        # 1. NEGATIVE ISSUES
+        with c1:
+            st.markdown('<div class="signal-title" style="color:#FF4560;">🔥 WHAT\'S BURNING (Issues)</div>', unsafe_allow_html=True)
+            threats = df[df['impact_score'] < 0].groupby('specific_trigger')['impact_score'].sum().sort_values().head(5)
+            for trigger, score in threats.items():
+                st.markdown(f'<div class="signal-item"><span>{trigger}</span><span class="signal-score-neg">{score:.1f}</span></div>', unsafe_allow_html=True)
+
+        # 2. POSITIVE ISSUES
+        with c2:
+            st.markdown('<div class="signal-title" style="color:#00E396;">🛡️ WHAT\'S WORKING (Wins)</div>', unsafe_allow_html=True)
+            wins = df[df['impact_score'] > 0].groupby('specific_trigger')['impact_score'].sum().sort_values(ascending=False).head(5)
+            for trigger, score in wins.items():
+                st.markdown(f'<div class="signal-item"><span>{trigger}</span><span class="signal-score-pos">+{score:.1f}</span></div>', unsafe_allow_html=True)
+
+        # 3. VIRAL TOPICS
+        with c3:
+            st.markdown('<div class="signal-title" style="color:#FFC107;">⚡ GOING VIRAL (Trending)</div>', unsafe_allow_html=True)
+            velocity = df['specific_trigger'].value_counts().head(5)
+            for trigger, count in velocity.items():
+                st.markdown(f'<div class="signal-item"><span>{trigger}</span><span style="color:#FFF;">{count} posts</span></div>', unsafe_allow_html=True)
+
 
 else:
-    st.warning("Waiting for data stream... Check scraper status.")
-
+    st.warning("Waiting for data stream...")
 
 # --- VISUALIZATION ROW ---
 col_charts_1, col_charts_2 = st.columns([1, 2])
 
 with col_charts_1:
-    st.markdown("### SHARE OF VOICE")
-    st.markdown("<div class='chart-caption'><b>The Demographic Split.</b> Who is holding the microphone? We isolate the loudest voter archetypes to reveal if the noise is coming from the base (Reformist) or the opposition (Conservative).</div>", unsafe_allow_html=True)
+    st.markdown("### WHO IS TALKING?")
+    st.markdown("<div class='chart-caption'><b>The Share of Voice.</b> Are these real voters or just internet trolls? We separate the 'Heartland' (Real Impact) from the 'Cynics' (Noise).</div>", unsafe_allow_html=True)
     
     if not df.empty:
         voice_data = df['archetype'].value_counts().reset_index()
         voice_data.columns = ['archetype', 'count']
+        
+        # FORENSIC COLOR PALETTE
         color_map = {
-            "Heartland Conservative": "#FFA500", "Urban Reformist": "#FFFFFF",
-            "Economic Pragmatist": "#808080", "Digital Cynic": "#FFD700", "Unknown": "#333333"
+            "Digital Cynic": "#FFC107",           # Yellow
+            "Urban Reformist": "#FFFFFF",         # White
+            "Heartland Conservative": "#FFA500",  # Orange
+            "Economic Pragmatist": "#808080",     # Grey
+            "Unknown": "#333333"
         }
+        
         fig_donut = px.pie(voice_data, values='count', names='archetype', hole=0.6, color='archetype', color_discrete_map=color_map)
-        fig_donut.update_layout(template="plotly_dark", showlegend=True, legend=dict(orientation="h", y=-0.15, font=dict(size=12)), margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        fig_donut.update_traces(textinfo='percent', textfont_size=14)
+        fig_donut.update_layout(
+            template="plotly_dark", 
+            showlegend=True, 
+            legend=dict(orientation="h", y=-0.2, font=dict(family="Rubik", size=11)), 
+            margin=dict(t=0, b=0, l=0, r=0), 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+        fig_donut.update_traces(textinfo='percent', textfont=dict(family="Rubik", size=14))
         st.plotly_chart(fig_donut, use_container_width=True)
 
 with col_charts_2:
-    st.markdown("### THE FRICTION RADAR")
-    st.markdown("<div class='chart-caption'><b>The Battlefield Map.</b> Visualizing Risk (Red) vs. Safety (Green). Topics in the top-right quadrant are high-volume/positive. Topics in the top-left are high-volume/toxic.</div>", unsafe_allow_html=True)
+    st.markdown("### THE HEATMAP")
+    st.markdown("""
+    <div class='chart-caption'>
+        <b>Risk Radar.</b> This map shows you what to worry about.
+        <br>🔴 <b>TOP LEFT (The Danger Zone):</b> Loud and Angry. These are the scandals.
+        <br>🟢 <b>TOP RIGHT (The Safe Zone):</b> Loud and Happy. These are the wins.
+        <br>⚪ <b>BOTTOM (The Noise):</b> Quiet issues. Ignored for now.
+    </div>
+    """, unsafe_allow_html=True)
     
     if not df.empty:
-        radar_data = df.groupby('topic').agg(volume=('topic', 'count'), avg_sentiment=('impact_score', 'mean')).reset_index()
-        fig_radar = px.scatter(radar_data, x="volume", y="avg_sentiment", color="avg_sentiment", size="volume", text="topic", color_continuous_scale="RdYlGn", range_color=[-2, 2], size_max=60)
-        fig_radar.update_traces(textposition='top center', textfont=dict(size=14, color="white"))
-        fig_radar.update_layout(template="plotly_dark", xaxis_title="Engagement Volume", yaxis_title="Net Sentiment (Impact)", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=False, margin=dict(t=20, b=20, l=0, r=0))
-        fig_radar.add_hline(y=0, line_width=1, line_dash="dash", line_color="gray")
+        radar_data = df.groupby('topic').agg(
+            volume=('topic', 'count'), 
+            avg_sentiment=('impact_score', 'mean'),
+            trigger=('specific_trigger', lambda x: x.mode()[0] if not x.mode().empty else "Various")
+        ).reset_index()
+        
+        fig_radar = px.scatter(
+            radar_data, 
+            x="volume", 
+            y="avg_sentiment", 
+            color="avg_sentiment", 
+            size="volume", 
+            text="trigger", 
+            color_continuous_scale="RdYlGn", 
+            range_color=[-2.5, 2.5], 
+            size_max=60
+        )
+        fig_radar.update_traces(textposition='top center', textfont=dict(family="Rubik", size=12, color="white"))
+        fig_radar.update_layout(
+            template="plotly_dark", 
+            xaxis_title="How Loud Is It?", 
+            yaxis_title="How Angry Are They?", 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            showlegend=False, 
+            font=dict(family="Rubik")
+        )
+        # Add Quadrant Lines
+        fig_radar.add_hline(y=0, line_width=1, line_dash="dash", line_color="#555")
+        fig_radar.add_vline(x=radar_data['volume'].median(), line_width=1, line_dash="dash", line_color="#555")
         st.plotly_chart(fig_radar, use_container_width=True)
 
-# --- TRAJECTORY & FEED ---
-st.markdown("### THE TRAJECTORY OF TRUST")
-st.markdown("<div class='chart-caption'><b>The Hourly Shift.</b> Tracking the velocity of sentiment change. Sharp dips indicate a breaking crisis; steady climbs indicate effective policy communication.</div>", unsafe_allow_html=True)
+# --- TRAJECTORY ---
+st.markdown("### THE 24-HOUR TREND")
+st.markdown("<div class='chart-caption'><b>Are things getting better or worse?</b> If the line dips into the <span style='color:#FF4560'>Red Zone</span>, trust is crashing. If it stays in the <span style='color:#00E396'>Green Zone</span>, the government is safe.</div>", unsafe_allow_html=True)
 
 if not df.empty:
     df_trend = df.set_index('created_at').resample('H')['impact_score'].mean().reset_index()
-    fig_trend = px.line(df_trend, x='created_at', y='impact_score', markers=True)
-    fig_trend.update_traces(line_color='#FFC107', line_width=4, marker=dict(size=8, color='#FFF'))
-    fig_trend.add_hline(y=0, line_dash="dash", line_color="white", annotation_text="Neutral Baseline")
-    fig_trend.update_layout(template="plotly_dark", yaxis_title="Net Trust Score", xaxis_title=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified")
+    fig_trend = go.Figure()
+    
+    # Line
+    fig_trend.add_trace(go.Scatter(x=df_trend['created_at'], y=df_trend['impact_score'], mode='lines+markers', line=dict(color='#FFC107', width=4), marker=dict(size=8, color='#FFF', line=dict(width=2, color='#000')), name='Trust Score'))
+    
+    # Background Zones
+    fig_trend.add_hrect(y0=-2.5, y1=-0.5, fillcolor="red", opacity=0.1, layer="below", line_width=0)
+    fig_trend.add_hrect(y0=0.5, y1=2.5, fillcolor="green", opacity=0.1, layer="below", line_width=0)
+
+    fig_trend.update_layout(template="plotly_dark", yaxis_title="Net Trust Score", yaxis_range=[-3, 3], xaxis_title=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Rubik"), hovermode="x unified")
     st.plotly_chart(fig_trend, use_container_width=True)
 
-st.markdown("### LIVE INTELLIGENCE FEED")
-st.markdown("<div class='chart-caption'>The raw feed of verified conversations, filtered for relevance and impact.</div>", unsafe_allow_html=True)
+# --- EVIDENCE LOG ---
+st.markdown("### THE EVIDENCE LOG")
+st.markdown("<div class='chart-caption'>The receipts. This is the raw, unfiltered feed of what people are actually saying, verified by our system.</div>", unsafe_allow_html=True)
 if not df.empty:
     feed_df = df[['created_at', 'topic', 'specific_trigger', 'archetype', 'impact_score', 'summary']].copy()
-    st.dataframe(feed_df, use_container_width=True, column_config={"created_at": st.column_config.DatetimeColumn("Timestamp", format="D MMM, HH:mm"), "topic": "Domain", "specific_trigger": "Trigger", "archetype": "Persona", "impact_score": st.column_config.NumberColumn("Score", format="%.2f"), "summary": "AI Analysis"}, hide_index=True)
+    st.dataframe(feed_df, use_container_width=True, column_config={"created_at": st.column_config.DatetimeColumn("Timestamp", format="D MMM, HH:mm"), "impact_score": st.column_config.NumberColumn("Impact", format="%.2f")}, hide_index=True)
 
-with st.expander("METHODOLOGY: HOW WE LISTEN"):
+# --- TRANSPARENCY REPORT (Methodology) ---
+with st.expander("📁 TRANSPARENCY REPORT: HOW WE WORK"):
     st.markdown("""
-    #### 1. THE HARVEST
-    Every 60 minutes, our autonomous system scans the ecosystem for high-velocity discussions.
-    #### 2. THE INTELLIGENCE
-    Gemini 2.0 Pro classifies content into 5 Mutually Exclusive Domains (e.g., Economic Anxiety, Institutional Integrity).
-    #### 3. THE METRICS
-    * **Public Consensus:** The ratio of Positive to Total voices.
-    * **Resistance Level:** The ratio of Negative to Total voices.
-    """)
+    <div class="methodology-text">
+        <h4 class="methodology-header">STEP 1: WE LISTEN (The Dragnet)</h4>
+        Most polls are fake or outdated. We don't ask people questions; we listen to what they already say. 
+        Our autonomous system scans TikTok, X, and Facebook for political conversations in <b>Malay, English, and Mandarin</b>. 
+        We pick up the slang ("Manglish", "Kelate") that traditional media ignores.
+        <br><br>
+        
+        <h4 class="methodology-header">STEP 2: WE FILTER (The Logic)</h4>
+        Not everyone is a voter. We use AI to separate <b>Real Voices</b> from bots and trolls.
+        <ul>
+            <li><b>Heartland Conservative:</b> We give extra weight to rural voices because they decide elections.</li>
+            <li><b>Digital Cynic:</b> We lower the volume on internet trolls who just want to fight.</li>
+            <li><b>3R Detection:</b> We instantly flag dangerous speech about Race, Religion, or Royalty.</li>
+        </ul>
+        
+        <h4 class="methodology-header">STEP 3: WE SCORE (The Reality Check)</h4>
+        We calculate a single number: the <b>Net Trust Score</b>.
+        <br>It’s simple math: <i>(Support - Anger) = Trust.</i>
+        <br>
+        <i>We don't predict the future. We just show you the receipts.</i>
+    </div>
+    """, unsafe_allow_html=True)

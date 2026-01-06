@@ -1,13 +1,16 @@
 {
   "searchQueries": [
+    "Anwar Ibrahim Prime Minister Malaysia",
     "Anwar Ibrahim",
-    "PMX",
-    "DSAI",
+    "PMX Malaysia",
     "Datuk Seri Anwar Ibrahim",
+    "Perdana Menteri Anwar Ibrahim",
+    "DSAI",
+    "Perdana Menteri Anwar",
+    "安华依布拉罕 马来西亚首相",
+    "拿督斯里安华",
     "安华",
-    "安瓦尔",
-    "马来西亚首相",
-    "Perdana Menteri Anwar"
+    "马来西亚首相" 
   ],
   "resultsPerPage": 3,
   "scrapeComments": true,

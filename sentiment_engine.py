@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import datetime
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -9,7 +10,7 @@ from supabase import create_client, Client
 # 1. Setup & Config
 load_dotenv()
 
-# Initialize Gemini AI (New SDK)
+# Initialize Gemini AI
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 if not gemini_api_key:
     raise ValueError("Missing GEMINI_API_KEY in environment variables")
@@ -25,7 +26,8 @@ if not supabase_url or not supabase_key:
 
 supabase: Client = create_client(supabase_url, supabase_key)
 
-# Weights for Net Trust Score Calculation
+# 2. STRICT Archetype Definitions & Weights
+# The engine will FORCE any unknown label into "Digital Cynic"
 ARCHETYPE_WEIGHTS = {
     "Heartland Conservative": 2.5,
     "Economic Pragmatist": 1.5,
@@ -33,43 +35,70 @@ ARCHETYPE_WEIGHTS = {
     "Digital Cynic": 0.5
 }
 
-def calculate_impact_score(sentiment_val, archetype, is_3r):
+def calculate_impact_score(sentiment_val, archetype, is_3r, velocity_score):
     """
-    Calculates the Political Impact Score.
+    Calculates Political Impact Score (NTS).
+    Formula: Sentiment * Archetype * Risk * VelocityBonus
     """
-    weight = ARCHETYPE_WEIGHTS.get(archetype, 1.0)
-    risk = 1.5 if is_3r else 1.0
-    return sentiment_val * weight * risk
+    # 1. Base Weight
+    weight = ARCHETYPE_WEIGHTS.get(archetype, 0.5) # Default to 0.5 (Cynic) if unknown
+    
+    # 2. Risk Multiplier (3R)
+    risk_multiplier = 1.5 if is_3r else 1.0
+    
+    # 3. Velocity Multiplier (Viral Bonus)
+    # If video is getting >500 views/hour, it is "Breaking News". Boost impact by 20%.
+    velocity_bonus = 1.2 if velocity_score > 500 else 1.0
+    
+    return sentiment_val * weight * risk_multiplier * velocity_bonus
 
 def analyze_videos():
-    """
-    Analyze unanalyzed videos, prioritizing HIGH IMPACT (Viral) content first.
-    Classifies content into 5 MECE Domains and extracts specific triggers.
-    """
-    
-    print("🚀 Starting Sentiment Engine (MECE Protocol)...")
-    print("Fetching high-impact unanalyzed videos...")
+    print("🚀 Starting Sentiment Engine (Smart Velocity Protocol)...")
     
     try:
-        # 1. Fetch UNPROCESSED videos (is_analyzed = False)
-        # We fetch a buffer of 50 to ensure we have enough candidates
+        # STEP 1: FETCH CANDIDATES (Smart Triage)
+        # We fetch 100 unprocessed videos to sort them locally by velocity
         response = supabase.table("videos") \
-            .select("id, caption, views") \
+            .select("id, caption, views, created_at") \
             .eq("is_analyzed", False) \
-            .order("views", desc=True) \
-            .limit(50) \
+            .order("created_at", desc=True) \
+            .limit(100) \
             .execute()
             
         candidates = response.data
-        
-        # 2. Take the Top 20 Viral Candidates
-        videos_to_analyze = candidates[:20]
-        
-        if not videos_to_analyze:
-            print("💤 No new viral videos to analyze.")
+        if not candidates:
+            print("💤 No new videos to analyze.")
             return
 
-        print(f"🎯 Found {len(videos_to_analyze)} high-impact videos to analyze.")
+        # STEP 2: CALCULATE VIRAL VELOCITY (Views per Hour)
+        # This solves the "Old Viral Video" problem.
+        now = datetime.datetime.utcnow()
+        scored_candidates = []
+        
+        for v in candidates:
+            # Parse timestamp (Handle format variations)
+            try:
+                # Remove 'Z' for UTC parsing compatibility if needed
+                ts_str = v['created_at'].replace('Z', '+00:00')
+                upload_time = datetime.datetime.fromisoformat(ts_str)
+            except ValueError:
+                upload_time = datetime.datetime.utcnow() # Fallback
+
+            # Calculate Age in Hours (Min 0.5h to avoid divide-by-zero)
+            age_seconds = (now - upload_time.replace(tzinfo=None)).total_seconds()
+            age_hours = max(age_seconds / 3600, 0.5)
+            
+            # Velocity = Views / Hours
+            velocity = v['views'] / age_hours
+            
+            v['velocity_score'] = velocity
+            scored_candidates.append(v)
+
+        # Sort by Velocity (Fastest Moving First) & Pick Top 20
+        scored_candidates.sort(key=lambda x: x['velocity_score'], reverse=True)
+        videos_to_analyze = scored_candidates[:20]
+        
+        print(f"🎯 Selected Top {len(videos_to_analyze)} High-Velocity Videos.")
 
     except Exception as e:
         print(f"❌ Error fetching videos: {e}")
@@ -77,123 +106,141 @@ def analyze_videos():
 
     processed_count = 0
 
-    # 3. The Analysis Loop
+    # STEP 3: ANALYSIS LOOP
     for video in videos_to_analyze:
         video_id = video['id']
         caption = video.get('caption', '')
-        views = video.get('views', 0)
+        velocity_score = video.get('velocity_score', 0)
         
-        # Skip empty captions (nothing to analyze)
         if not caption or len(caption.strip()) < 3:
-            print(f"⏭️ Skipping {video_id} (empty/short caption)")
-            # Mark as analyzed so we don't keep checking it
+            # Skip empty but mark as done
             supabase.table("videos").update({"is_analyzed": True}).eq("id", video_id).execute()
             continue
 
-        print(f"\n🧠 Processing {video_id} ({views} views)...")
+        print(f"\n🧠 Processing {video_id} (Vel: {int(velocity_score)}/hr)...")
 
-        # 4. The MECE System Prompt
+        # STEP 4: THE PROMPT (With Conceptual Definitions & Sarcasm)
         prompt = f"""
         Analyze this Malaysian political TikTok caption.
         Caption: "{caption}"
 
-        Your task is to classify this content into ONE of 5 Mutually Exclusive domains.
+        TASK 1: CLASSIFY DOMAIN (Pick ONE):
+        
+        1. "Economic Anxiety"
+           - CONCEPT: Fear regarding financial stability, survival, and wealth preservation.
+           - OPERATION: Mentions prices, subsidies (diesel/rice), taxes (SST/GST), EPF withdrawals, low wages, cost of living, or currency (MYR/USD).
 
-        STEP 1: ASSIGN DOMAIN (Pick ONE only):
-        1. "Economic Anxiety": Mentions prices, subsidies (diesel/rice/chicken), taxes (SST/GST), EPF, wages, cost of living, or currency (MYR/USD).
-        2. "Institutional Integrity": Mentions corruption, MACC, court cases, DNAA, laws, reforms, police, or cabinet appointments.
-        3. "Identity Politics": Mentions Race (Malay/Chinese/Indian), Religion (Islam/Halal), Royalty (3R), Language, or Vernacular Schools.
-        4. "Public Competency": Mentions infrastructure (roads/floods), healthcare, education quality, transport, or system failures (PADU/MySejahtera).
-        5. "Political Maneuvering": Mentions elections, polls, party coalitions (PH/PN/BN), MP defections, or politician popularity/drama with NO specific policy mention.
+        2. "Institutional Integrity"
+           - CONCEPT: Trust in the fairness of the system, rule of law, and ethical governance.
+           - OPERATION: Mentions corruption, MACC (SPRM), court cases (DNAA), legal reforms, police misconduct, or cabinet appointments.
 
-        STEP 2: IDENTIFY SPECIFIC TRIGGER:
-        - What specific keyword drove this? (e.g., "Diesel Subsidy", "BlackRock Deal", "PADU Glitch", "SST Hike").
-        - Keep it under 4 words.
+        3. "Identity Politics" (High Risk)
+           - CONCEPT: Threats to group identity, cultural dominance, or religious sanctity.
+           - OPERATION: Mentions Race (Malay/Chinese/Indian), Religion (Islam/Halal/Kafir), Royalty (3R), Language (Bahasa/Mandarin), or Vernacular Schools.
 
-        STEP 3: ASSIGN PERSONA (Psychographic):
-        - "Economic Pragmatist" (Wallet/Business focus)
-        - "Heartland Conservative" (Tradition/Rural/Religion focus)
-        - "Urban Reformist" (Governance/Rights focus)
-        - "Digital Cynic" (Satire/Hopelessness/Trolling)
+        4. "Public Competency"
+           - CONCEPT: The government's ability to deliver basic services and infrastructure.
+           - OPERATION: Mentions potholes, floods, healthcare waiting times, education quality, public transport (LRT/MRT), or digital failures (PADU/MySejahtera).
 
-        STEP 4: DETERMINE SENTIMENT:
-        - Return an integer score: -1 (Negative), 0 (Neutral), 1 (Positive)
+        5. "Political Maneuvering"
+           - CONCEPT: The "Game" of politics—power struggles, popularity, and elections.
+           - OPERATION: Mentions elections (PRK/PRU), polls, coalitions (PH/PN/BN), MP defections, or party drama without specific policy substance.
 
-        STEP 5: 3R CHECK:
-        - Is this strictly related to Race, Religion, or Royalty? (Boolean)
+        TASK 2: ASSIGN PERSONA (Strictly Pick ONE):
+        - "Heartland Conservative" (Rural/Religious/Tradition focus)
+        - "Economic Pragmatist" (Business/Cost of Living/Middle Class focus)
+        - "Urban Reformist" (Governance/Human Rights/Liberal focus)
+        - "Digital Cynic" (Satire/Trolling/Hopelessness/Memes)
+        *IF UNCLEAR, DEFAULT TO "Digital Cynic". DO NOT INVENT NEW LABELS.*
 
-        Return strictly valid JSON:
+        TASK 3: DETECT SARCASM:
+        - Boolean: True if the text says one thing but implies the opposite (e.g. "Hebat sangat PMX" on a video of a disaster).
+
+        TASK 4: SENTIMENT:
+        - Integer: -1 (Negative), 0 (Neutral), 1 (Positive).
+        - IMPORTANT: If Sarcasm is True, INVERT the literal sentiment (Positive becomes Negative).
+
+        TASK 5: 3R CHECK:
+        - Boolean: True if specific to Race, Religion, or Royalty.
+
+        TASK 6: TRIGGER:
+        - Specific keyword driving the issue (max 4 words). E.g., "Diesel Subsidy", "SST Rate", "PADU Glitch".
+
+        TASK 7: SUMMARY:
+        - 15-word journalistic summary of the issue.
+
+        OUTPUT JSON:
         {{
-            "sentiment_score": (integer: -1, 0, or 1),
-            "domain": "String (One of the 5 Domains above)",
-            "specific_trigger": "String",
+            "domain": "String",
             "persona": "String",
-            "is_3r": boolean,
-            "summary": "String (15-word journalistic summary of WHY)"
+            "sentiment_score": Int,
+            "is_sarcasm": Bool,
+            "is_3r": Bool,
+            "specific_trigger": "String",
+            "summary": "String"
         }}
         """
 
         try:
-            # Call Gemini (New SDK)
+            # Call Gemini
             response = client.models.generate_content(
                 model='gemini-2.0-flash',
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    temperature=0.3, 
+                    temperature=0.2, # Low temp for strict adherence to definitions
                     response_mime_type="application/json"
                 )
             )
             
-            # Parse JSON
+            # Parse Logic
             try:
                 result = json.loads(response.text.strip())
-            except json.JSONDecodeError:
+            except:
                 print(f"⚠️ JSON Parse Error for {video_id}, skipping...")
                 continue
+            
+            if isinstance(result, list): result = result[0]
 
-            # Handle edge case where Gemini returns a list
-            if isinstance(result, list):
-                result = result[0] if len(result) > 0 else {}
+            # STRICT BUCKETING ENFORCER
+            # This fixes "Hallucinated Categories" by forcing unknowns to "Digital Cynic"
+            raw_archetype = result.get("persona", "Digital Cynic")
+            if raw_archetype not in ARCHETYPE_WEIGHTS:
+                archetype = "Digital Cynic"
+            else:
+                archetype = raw_archetype
 
-            # Extract Values with defaults
+            # Calculate Scores
             sent_score = int(result.get("sentiment_score", 0))
-            archetype = result.get("persona", "Digital Cynic") # Default to Cynic if unknown
             is_3r = bool(result.get("is_3r", False))
             
-            # Calculate Impact Score (NTS)
-            impact = calculate_impact_score(sent_score, archetype, is_3r)
+            impact = calculate_impact_score(sent_score, archetype, is_3r, velocity_score)
 
-            # Map Data to Supabase Schema
+            # Save to DB
             db_payload = {
                 "video_id": video_id,
                 "sentiment": sent_score,
                 "archetype": archetype,
-                "topic": result.get("domain", "Uncategorized"), # Map 'domain' to 'topic'
-                "specific_trigger": result.get("specific_trigger", "General"), # Extra detail if you have a column for it
+                "topic": result.get("domain", "Uncategorized"),
+                "specific_trigger": result.get("specific_trigger", "General"),
                 "is_3r": is_3r,
                 "summary": result.get("summary", ""),
                 "impact_score": impact,
                 "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
             }
             
-            # Insert into Supabase
             supabase.table("sentiment_logs").insert(db_payload).execute()
-            
-            # Mark video as analyzed
             supabase.table("videos").update({"is_analyzed": True}).eq("id", video_id).execute()
             
-            print(f"✅ Analyzed: {db_payload['topic']} -> {db_payload['specific_trigger']}")
-            print(f"   Persona: {db_payload['archetype']} | Impact Score: {impact}")
+            print(f"✅ Saved: {archetype} ({db_payload['topic']}) | Score: {impact:.2f}")
             processed_count += 1
             
         except Exception as e:
-            print(f"❌ Error analyzing {video_id}: {e}")
+            print(f"❌ Error: {e}")
             # Mark as analyzed anyway to prevent infinite loops on bad data
             supabase.table("videos").update({"is_analyzed": True}).eq("id", video_id).execute()
-            # Sleep briefly to let the API cool down
             time.sleep(1)
 
-    print(f"\n✅ Batch Complete. Processed {processed_count}/{len(videos_to_analyze)} videos.")
+    print(f"\n✅ Batch Complete: {processed_count} videos.")
 
 if __name__ == "__main__":
     analyze_videos()
