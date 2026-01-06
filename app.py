@@ -104,10 +104,50 @@ st.markdown("""
     .chart-caption {
         font-family: 'Inter', sans-serif; color: #888; font-size: 0.95rem; margin-bottom: 25px; margin-left: 22px; max-width: 650px;
     }
-    
-    /* --- RADIO BUTTONS (Time Selector) --- */
-    div[class*="stRadio"] > label > div[data-testid="stMarkdownContainer"] > p {
-        font-family: 'Rubik'; font-size: 14px; color: #CCC;
+
+    /* --- CUSTOM TIME SELECTOR (THE TOGGLE BAR) --- */
+    /* 1. Hide the label "Time Range:" */
+    div[data-testid="stRadio"] > label {
+        display: none !important;
+    }
+    /* 2. Container Style */
+    div[role="radiogroup"] {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        background-color: transparent;
+        margin-left: 22px; /* Align with chart caption */
+        margin-bottom: 10px;
+    }
+    /* 3. Hide the Radio Circles */
+    div[role="radiogroup"] label > div:first-child {
+        display: none !important;
+    }
+    /* 4. Button Style */
+    div[role="radiogroup"] label {
+        background-color: #111 !important;
+        border: 1px solid #333 !important;
+        border-radius: 4px !important;
+        padding: 6px 16px !important;
+        margin: 0 !important;
+        transition: all 0.2s ease-in-out;
+    }
+    div[role="radiogroup"] label:hover {
+        border-color: #FFC107 !important;
+        cursor: pointer;
+    }
+    /* 5. Text Style inside Button */
+    div[role="radiogroup"] p {
+        font-family: 'Rubik', sans-serif !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: #CCC !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+    }
+    /* 6. Active State (Streamlit highlights text automatically, we enhance contrast) */
+    div[role="radiogroup"] [data-checked="true"] + div p {
+        color: #FFC107 !important;
     }
     
     /* --- METHODOLOGY --- */
@@ -129,14 +169,11 @@ def init_connection():
 
 supabase = init_connection()
 
-# 4. DATA LOADING (UPDATED WITH TIME FILTER)
-# We now allow passing 'days_filter' to grab more history if needed
+# 4. DATA LOADING
 def load_data(days_filter=1):
     if not supabase: return pd.DataFrame()
     try:
-        # Calculate cut-off time based on selection
         cutoff_date = (datetime.utcnow() - timedelta(days=days_filter)).isoformat()
-        
         response = supabase.table("sentiment_logs") \
             .select("created_at, sentiment, archetype, topic, summary, impact_score, specific_trigger, is_3r") \
             .gte("created_at", cutoff_date) \
@@ -166,8 +203,7 @@ def load_intelligence():
     except:
         return None
 
-# --- STATE MANAGEMENT FOR TIME FILTER ---
-# Default to 24 Hours
+# --- STATE ---
 if 'time_range' not in st.session_state:
     st.session_state['time_range'] = 1
 
@@ -188,29 +224,27 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- TIME SELECTOR (Above Metrics) ---
-# We put this logic before load_data to ensure the query matches the user choice
+# --- SECTION HEADER ---
 st.markdown("### THE REALITY CHECK")
 
-c_time_1, c_time_2 = st.columns([1, 4])
-with c_time_1:
-    time_option = st.radio(
-        "Time Range:",
-        ("24H", "3 Days", "7 Days", "30 Days", "3 Months"),
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+# --- CUSTOM TIME SELECTOR (TOGGLE BAR) ---
+# Placed directly under header, full width (no columns needed due to CSS styling)
+time_option = st.radio(
+    "Time Range:",
+    ("24H", "3 Days", "7 Days", "30 Days", "3 Months"),
+    horizontal=True,
+    label_visibility="collapsed"
+)
 
-# Map UI selection to days
+# LOGIC
 time_map = {"24H": 1, "3 Days": 3, "7 Days": 7, "30 Days": 30, "3 Months": 90}
 days_to_load = time_map[time_option]
 
-# Load Data based on selection
 df = load_data(days_to_load)
 latest_intel = load_intelligence()
 
+# CAPTION
 st.markdown(f"<div class='chart-caption'>Audit of digital conversations over the last <b>{time_option}</b>.</div>", unsafe_allow_html=True)
-
 
 if not df.empty:
     total_abs_impact = df['impact_score'].abs().sum()
@@ -346,12 +380,6 @@ st.markdown("### TRAJECTORY OF TRUST")
 st.markdown(f"<div class='chart-caption'><b>Trend over the last {time_option}.</b> <span style='color:#FF4560'>Red Band</span> = Crisis. <span style='color:#00E396'>Green Band</span> = Safe.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    # DYNAMIC RESAMPLING:
-    # 24H -> Hourly ('H')
-    # 3 Days -> Hourly ('H')
-    # 7 Days -> 4 Hours ('4H') or 6 Hours ('6H')
-    # 30+ Days -> Daily ('D')
-    
     if days_to_load <= 3:
         sample_rate = 'H'
     elif days_to_load <= 7:
