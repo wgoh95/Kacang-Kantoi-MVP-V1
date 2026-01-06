@@ -325,35 +325,32 @@ if not df.empty:
 with st.expander("📁 TRANSPARENCY REPORT: HOW WE WORK"):
     st.markdown("""
 <div class="methodology-text">
-    <h4 class="methodology-header">1. DATA SOURCE: TIKTOK INTELLIGENCE</h4>
-    We currently deploy a focused dragnet on <b>TikTok</b>, scanning Malaysian political discourse in Malay, English, and Mandarin. 
-    We target high-velocity content (viral videos) to capture the pulse of the youth and rural vote bank.
-    <br><br>
-
-    <h4 class="methodology-header">2. THE VOTER ARCHETYPES (Who We Track)</h4>
-    Not all noise is equal. We categorize voices into 4 buckets to weigh their political impact:
-    <ul>
-        <li><b style="color:#FFA500">Heartland Conservative:</b> Rural, traditional, and religious voters. High political weight (The "Kingmakers").</li>
-        <li><b style="color:#808080">Economic Pragmatist:</b> Urban/Semi-urban voters focused on cost of living, business, and taxes. Swing voters.</li>
-        <li><b style="color:#FFFFFF">Urban Reformist:</b> Governance-focused voters who care about institutional reforms and civil liberties. Base support.</li>
-        <li><b style="color:#FFC107">Digital Cynic:</b> Trolls, satirists, and disengaged youth. High volume, but low political capital (Noise).</li>
-    </ul>
-
-    <h4 class="methodology-header">3. THE ISSUE DOMAINS (What We Track)</h4>
-    Every signal is sorted into one of 5 "Battlefield Buckets":
-    <ul>
-        <li><b>Economic Anxiety:</b> Prices, subsidies, taxes (SST), and survival issues.</li>
-        <li><b>Institutional Integrity:</b> Corruption, MACC cases, legal fairness, and reforms.</li>
-        <li><b>Identity Politics:</b> Race, Religion, and Royalty (3R) triggers.</li>
-        <li><b>Public Competency:</b> Infrastructure failures (roads/floods) and service delivery.</li>
-        <li><b>Political Maneuvering:</b> Elections, party hopping, and coalition drama.</li>
-    </ul>
-    
-    <h4 class="methodology-header">4. NET TRUST SCORE (The Math)</h4>
-    How do we calculate the score?
-    <br><i>NTS = (Sentiment × Archetype Weight × Risk Multiplier)</i>
-    <br>A positive score means the government is building capital. A negative score means they are bleeding it.
-    <br><br>
-    <i>We do not predict the future. We audit the present.</i>
+<h4 class="methodology-header">1. DATA SOURCE: TIKTOK INTELLIGENCE</h4>
+We currently deploy a focused dragnet on <b>TikTok</b>, scanning Malaysian political discourse in Malay, English, and Mandarin. 
+We target high-velocity content (viral videos) to capture the pulse of the youth and rural vote bank.
+<br><br>
+<h4 class="methodology-header">2. THE VOTER ARCHETYPES (Who We Track)</h4>
+Not all noise is equal. We categorize voices into 4 buckets to weigh their political impact:
+<ul>
+<li><b style="color:#FFA500">Heartland Conservative:</b> Rural, traditional, and religious voters. High political weight (The "Kingmakers").</li>
+<li><b style="color:#808080">Economic Pragmatist:</b> Urban/Semi-urban voters focused on cost of living, business, and taxes. Swing voters.</li>
+<li><b style="color:#FFFFFF">Urban Reformist:</b> Governance-focused voters who care about institutional reforms and civil liberties. Base support.</li>
+<li><b style="color:#FFC107">Digital Cynic:</b> Trolls, satirists, and disengaged youth. High volume, but low political capital (Noise).</li>
+</ul>
+<h4 class="methodology-header">3. THE ISSUE DOMAINS (What We Track)</h4>
+Every signal is sorted into one of 5 "Battlefield Buckets":
+<ul>
+<li><b>Economic Anxiety:</b> Prices, subsidies, taxes (SST), and survival issues.</li>
+<li><b>Institutional Integrity:</b> Corruption, MACC cases, legal fairness, and reforms.</li>
+<li><b>Identity Politics:</b> Race, Religion, and Royalty (3R) triggers.</li>
+<li><b>Public Competency:</b> Infrastructure failures (roads/floods) and service delivery.</li>
+<li><b>Political Maneuvering:</b> Elections, party hopping, and coalition drama.</li>
+</ul>
+<h4 class="methodology-header">4. NET TRUST SCORE (The Math)</h4>
+How do we calculate the score?
+<br><i>NTS = (Sentiment × Archetype Weight × Risk Multiplier)</i>
+<br>A positive score means the government is building capital. A negative score means they are bleeding it.
+<br><br>
+<i>We do not predict the future. We audit the present.</i>
 </div>
 """, unsafe_allow_html=True)
