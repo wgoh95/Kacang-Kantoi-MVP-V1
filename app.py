@@ -71,22 +71,29 @@ st.markdown("""
     .signal-score-pos { color: #00E396; font-weight: 700; }
     .signal-score-neg { color: #FF4560; font-weight: 700; }
 
-    /* --- NARRATIVE BOX --- */
+    /* --- NARRATIVE BOX (Adjusted for Alignment) --- */
     .narrative-box {
-        background-color: #111; border: 1px solid #333; border-left: 4px solid #FFC107;
-        padding: 20px; height: 100%;
+        background-color: #111; 
+        border: 1px solid #333; 
+        border-left: 4px solid #FFC107;
+        padding: 20px; 
+        height: 100%;
+        margin-top: -15px; /* PULLS BOX UP TO ALIGN WITH METRICS */
     }
     .narrative-header {
         font-family: 'Rubik', sans-serif; color: #FFF; font-weight: 900; 
-        text-transform: uppercase; font-size: 1.4rem; margin-bottom: 5px; letter-spacing: 0.5px;
+        text-transform: uppercase; font-size: 1.3rem; margin-bottom: 5px; letter-spacing: 0.5px;
     }
     .narrative-sub {
-        font-family: 'Rubik', sans-serif; color: #FFC107; font-size: 0.8rem;
-        text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; font-weight: 700;
+        font-family: 'Rubik', sans-serif; color: #FFC107; font-size: 0.75rem;
+        text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; font-weight: 700;
     }
     .narrative-text {
-        font-family: 'Inter', sans-serif; color: #CCC; font-size: 1.05rem; line-height: 1.5; font-style: italic;
+        font-family: 'Inter', sans-serif; color: #CCC; font-size: 1rem; line-height: 1.4; font-style: italic;
     }
+
+    /* --- SPACER --- */
+    .spacer { margin-top: 40px; }
 
     /* --- CHART HEADERS --- */
     h3 {
@@ -216,9 +223,11 @@ if not df.empty:
             headline = content.get('headline', 'System Stable')
             narrative = content.get('public_narrative', content.get('dominant_narrative', 'Analyzing data streams...'))
             
+            # UPDATED: Renamed "Forensic Analyst Note" to "THE BOTTOM LINE"
+            # ADDED: Spacer div to ensure alignment
             st.markdown(f"""
             <div class="narrative-box">
-                <div class="narrative-sub">FORENSIC ANALYST NOTE</div>
+                <div class="narrative-sub">THE BOTTOM LINE</div>
                 <div class="narrative-header">{headline}</div>
                 <div class="narrative-text">"{narrative}"</div>
             </div>
@@ -226,7 +235,9 @@ if not df.empty:
         else:
             st.info("Initializing Analyst...")
 
-    # --- SIGNAL BOARD ---
+    # --- SIGNAL BOARD (Added Spacer Above) ---
+    st.markdown("<div class='spacer'></div>", unsafe_allow_html=True) 
+    
     with st.expander("🔻 TAP TO SEE WHAT'S DRIVING THE NUMBERS", expanded=False):
         c1, c2, c3 = st.columns(3)
         
@@ -321,36 +332,39 @@ if not df.empty:
     feed_df = df[['created_at', 'topic', 'specific_trigger', 'archetype', 'impact_score', 'summary']].copy()
     st.dataframe(feed_df, use_container_width=True, column_config={"created_at": st.column_config.DatetimeColumn("Timestamp", format="D MMM, HH:mm"), "impact_score": st.column_config.NumberColumn("Impact", format="%.2f")}, hide_index=True)
 
-# --- TRANSPARENCY REPORT (FIXED INDENTATION) ---
+# --- TRANSPARENCY REPORT ---
 with st.expander("📁 TRANSPARENCY REPORT: HOW WE WORK"):
     st.markdown("""
 <div class="methodology-text">
-<h4 class="methodology-header">1. DATA SOURCE: TIKTOK INTELLIGENCE</h4>
-We currently deploy a focused dragnet on <b>TikTok</b>, scanning Malaysian political discourse in Malay, English, and Mandarin. 
-We target high-velocity content (viral videos) to capture the pulse of the youth and rural vote bank.
-<br><br>
-<h4 class="methodology-header">2. THE VOTER ARCHETYPES (Who We Track)</h4>
-Not all noise is equal. We categorize voices into 4 buckets to weigh their political impact:
-<ul>
-<li><b style="color:#FFA500">Heartland Conservative:</b> Rural, traditional, and religious voters. High political weight (The "Kingmakers").</li>
-<li><b style="color:#808080">Economic Pragmatist:</b> Urban/Semi-urban voters focused on cost of living, business, and taxes. Swing voters.</li>
-<li><b style="color:#FFFFFF">Urban Reformist:</b> Governance-focused voters who care about institutional reforms and civil liberties. Base support.</li>
-<li><b style="color:#FFC107">Digital Cynic:</b> Trolls, satirists, and disengaged youth. High volume, but low political capital (Noise).</li>
-</ul>
-<h4 class="methodology-header">3. THE ISSUE DOMAINS (What We Track)</h4>
-Every signal is sorted into one of 5 "Battlefield Buckets":
-<ul>
-<li><b>Economic Anxiety:</b> Prices, subsidies, taxes (SST), and survival issues.</li>
-<li><b>Institutional Integrity:</b> Corruption, MACC cases, legal fairness, and reforms.</li>
-<li><b>Identity Politics:</b> Race, Religion, and Royalty (3R) triggers.</li>
-<li><b>Public Competency:</b> Infrastructure failures (roads/floods) and service delivery.</li>
-<li><b>Political Maneuvering:</b> Elections, party hopping, and coalition drama.</li>
-</ul>
-<h4 class="methodology-header">4. NET TRUST SCORE (The Math)</h4>
-How do we calculate the score?
-<br><i>NTS = (Sentiment × Archetype Weight × Risk Multiplier)</i>
-<br>A positive score means the government is building capital. A negative score means they are bleeding it.
-<br><br>
-<i>We do not predict the future. We audit the present.</i>
+    <h4 class="methodology-header">1. DATA SOURCE: TIKTOK INTELLIGENCE</h4>
+    We currently deploy a focused dragnet on <b>TikTok</b>, scanning Malaysian political discourse in Malay, English, and Mandarin. 
+    We target high-velocity content (viral videos) to capture the pulse of the youth and rural vote bank.
+    <br><br>
+
+    <h4 class="methodology-header">2. THE VOTER ARCHETYPES (Who We Track)</h4>
+    Not all noise is equal. We categorize voices into 4 buckets to weigh their political impact:
+    <ul>
+        <li><b style="color:#FFA500">Heartland Conservative:</b> Rural, traditional, and religious voters. High political weight (The "Kingmakers").</li>
+        <li><b style="color:#808080">Economic Pragmatist:</b> Urban/Semi-urban voters focused on cost of living, business, and taxes. Swing voters.</li>
+        <li><b style="color:#FFFFFF">Urban Reformist:</b> Governance-focused voters who care about institutional reforms and civil liberties. Base support.</li>
+        <li><b style="color:#FFC107">Digital Cynic:</b> Trolls, satirists, and disengaged youth. High volume, but low political capital (Noise).</li>
+    </ul>
+
+    <h4 class="methodology-header">3. THE ISSUE DOMAINS (What We Track)</h4>
+    Every signal is sorted into one of 5 "Battlefield Buckets":
+    <ul>
+        <li><b>Economic Anxiety:</b> Prices, subsidies, taxes (SST), and survival issues.</li>
+        <li><b>Institutional Integrity:</b> Corruption, MACC cases, legal fairness, and reforms.</li>
+        <li><b>Identity Politics:</b> Race, Religion, and Royalty (3R) triggers.</li>
+        <li><b>Public Competency:</b> Infrastructure failures (roads/floods) and service delivery.</li>
+        <li><b>Political Maneuvering:</b> Elections, party hopping, and coalition drama.</li>
+    </ul>
+    
+    <h4 class="methodology-header">4. NET TRUST SCORE (The Math)</h4>
+    How do we calculate the score?
+    <br><i>NTS = (Sentiment × Archetype Weight × Risk Multiplier)</i>
+    <br>A positive score means the government is building capital. A negative score means they are bleeding it.
+    <br><br>
+    <i>We do not predict the future. We audit the present.</i>
 </div>
 """, unsafe_allow_html=True)
