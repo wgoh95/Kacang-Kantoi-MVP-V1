@@ -71,14 +71,14 @@ st.markdown("""
     .signal-score-pos { color: #00E396; font-weight: 700; }
     .signal-score-neg { color: #FF4560; font-weight: 700; }
 
-    /* --- NARRATIVE BOX (Adjusted for Alignment) --- */
+    /* --- NARRATIVE BOX --- */
     .narrative-box {
         background-color: #111; 
         border: 1px solid #333; 
         border-left: 4px solid #FFC107;
         padding: 20px; 
         height: 100%;
-        margin-top: -15px; /* PULLS BOX UP TO ALIGN WITH METRICS */
+        margin-top: -15px; 
     }
     .narrative-header {
         font-family: 'Rubik', sans-serif; color: #FFF; font-weight: 900; 
@@ -105,6 +105,11 @@ st.markdown("""
         font-family: 'Inter', sans-serif; color: #888; font-size: 0.95rem; margin-bottom: 25px; margin-left: 22px; max-width: 650px;
     }
     
+    /* --- RADIO BUTTONS (Time Selector) --- */
+    div[class*="stRadio"] > label > div[data-testid="stMarkdownContainer"] > p {
+        font-family: 'Rubik'; font-size: 14px; color: #CCC;
+    }
+    
     /* --- METHODOLOGY --- */
     .methodology-header {
         color: #FFC107; font-family: 'Rubik'; text-transform: uppercase; margin-bottom: 5px; font-size: 1rem; margin-top: 20px;
@@ -124,16 +129,20 @@ def init_connection():
 
 supabase = init_connection()
 
-# 4. LOAD DATA
-def load_data():
+# 4. DATA LOADING (UPDATED WITH TIME FILTER)
+# We now allow passing 'days_filter' to grab more history if needed
+def load_data(days_filter=1):
     if not supabase: return pd.DataFrame()
     try:
-        yesterday = (datetime.utcnow() - timedelta(hours=24)).isoformat()
+        # Calculate cut-off time based on selection
+        cutoff_date = (datetime.utcnow() - timedelta(days=days_filter)).isoformat()
+        
         response = supabase.table("sentiment_logs") \
             .select("created_at, sentiment, archetype, topic, summary, impact_score, specific_trigger, is_3r") \
-            .gte("created_at", yesterday) \
+            .gte("created_at", cutoff_date) \
             .order("created_at", desc=True) \
             .execute()
+            
         df = pd.DataFrame(response.data)
         if df.empty: return df
         df['created_at'] = pd.to_datetime(df['created_at'])
@@ -157,8 +166,10 @@ def load_intelligence():
     except:
         return None
 
-df = load_data()
-latest_intel = load_intelligence()
+# --- STATE MANAGEMENT FOR TIME FILTER ---
+# Default to 24 Hours
+if 'time_range' not in st.session_state:
+    st.session_state['time_range'] = 1
 
 # --- HERO SECTION ---
 st.markdown(f"""
@@ -177,9 +188,29 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- METRICS SECTION ---
+# --- TIME SELECTOR (Above Metrics) ---
+# We put this logic before load_data to ensure the query matches the user choice
 st.markdown("### THE REALITY CHECK")
-st.markdown("<div class='chart-caption'>The live scorecard from the last 24 hours. We audit every digital conversation to see if the government is passing or failing.</div>", unsafe_allow_html=True)
+
+c_time_1, c_time_2 = st.columns([1, 4])
+with c_time_1:
+    time_option = st.radio(
+        "Time Range:",
+        ("24H", "3 Days", "7 Days", "30 Days", "3 Months"),
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+# Map UI selection to days
+time_map = {"24H": 1, "3 Days": 3, "7 Days": 7, "30 Days": 30, "3 Months": 90}
+days_to_load = time_map[time_option]
+
+# Load Data based on selection
+df = load_data(days_to_load)
+latest_intel = load_intelligence()
+
+st.markdown(f"<div class='chart-caption'>Audit of digital conversations over the last <b>{time_option}</b>.</div>", unsafe_allow_html=True)
+
 
 if not df.empty:
     total_abs_impact = df['impact_score'].abs().sum()
@@ -198,15 +229,15 @@ if not df.empty:
         st.metric(
             "Voices Scanned", 
             len(df), 
-            delta="24h Volume", 
-            help="SAMPLE SIZE: The number of real, verified conversations (comments/videos) we analyzed today."
+            delta="Sample Size", 
+            help="Total verified data points in the selected timeframe."
         )
     with m2:
         st.metric(
             "Approval Score", 
             f"{consensus_pct:.1f}%", 
             delta="Support",
-            help="THE MANDATE: How much political capital the government has right now. If this is above 50%, they are safe."
+            help="THE MANDATE: How much political capital the government has. >50% is safe."
         )
     with m3:
         st.metric(
@@ -214,7 +245,7 @@ if not df.empty:
             f"{resistance_pct:.1f}%", 
             delta="Friction", 
             delta_color="inverse",
-            help="RESISTANCE: This measures active anger. Not just people who disagree, but people who are fighting back."
+            help="RESISTANCE: Active pushback and dissatisfaction intensity."
         )
     with m4:
         # NARRATIVE BOX
@@ -223,8 +254,6 @@ if not df.empty:
             headline = content.get('headline', 'System Stable')
             narrative = content.get('public_narrative', content.get('dominant_narrative', 'Analyzing data streams...'))
             
-            # UPDATED: Renamed "Forensic Analyst Note" to "THE BOTTOM LINE"
-            # ADDED: Spacer div to ensure alignment
             st.markdown(f"""
             <div class="narrative-box">
                 <div class="narrative-sub">THE BOTTOM LINE</div>
@@ -235,10 +264,10 @@ if not df.empty:
         else:
             st.info("Initializing Analyst...")
 
-    # --- SIGNAL BOARD (Added Spacer Above) ---
+    # --- SIGNAL BOARD ---
     st.markdown("<div class='spacer'></div>", unsafe_allow_html=True) 
     
-    with st.expander("🔻 TAP TO SEE WHAT'S DRIVING THE NUMBERS", expanded=False):
+    with st.expander(f"🔻 TAP TO SEE DRIVERS (LAST {time_option})", expanded=False):
         c1, c2, c3 = st.columns(3)
         
         with c1:
@@ -267,7 +296,7 @@ col_charts_1, col_charts_2 = st.columns([1, 2])
 
 with col_charts_1:
     st.markdown("### WHO IS TALKING?")
-    st.markdown("<div class='chart-caption'><b>The Share of Voice.</b> Are these real voters or just internet trolls? We separate the 'Heartland' (Real Impact) from the 'Cynics' (Noise).</div>", unsafe_allow_html=True)
+    st.markdown("<div class='chart-caption'><b>The Share of Voice.</b> Demographic split for the selected timeframe.</div>", unsafe_allow_html=True)
     
     if not df.empty:
         voice_data = df['archetype'].value_counts().reset_index()
@@ -288,9 +317,9 @@ with col_charts_2:
     st.markdown("### THE HEATMAP")
     st.markdown("""
     <div class='chart-caption'>
-        <b>Risk Radar.</b> This map shows you what to worry about.
-        <br>🔴 <b>TOP LEFT (The Danger Zone):</b> Loud and Angry. These are the scandals.
-        <br>🟢 <b>TOP RIGHT (The Safe Zone):</b> Loud and Happy. These are the wins.
+        <b>Risk Radar.</b> Mapping volume vs sentiment.
+        <br>🔴 <b>TOP LEFT:</b> High Volume + Anger (Danger).
+        <br>🟢 <b>TOP RIGHT:</b> High Volume + Support (Safety).
     </div>
     """, unsafe_allow_html=True)
     
@@ -313,16 +342,49 @@ with col_charts_2:
         st.plotly_chart(fig_radar, use_container_width=True)
 
 # --- TRAJECTORY ---
-st.markdown("### THE 24-HOUR TREND")
-st.markdown("<div class='chart-caption'><b>Are things getting better or worse?</b> If the line dips into the <span style='color:#FF4560'>Red Zone</span>, trust is crashing. If it stays in the <span style='color:#00E396'>Green Zone</span>, the government is safe.</div>", unsafe_allow_html=True)
+st.markdown("### TRAJECTORY OF TRUST")
+st.markdown(f"<div class='chart-caption'><b>Trend over the last {time_option}.</b> <span style='color:#FF4560'>Red Band</span> = Crisis. <span style='color:#00E396'>Green Band</span> = Safe.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    df_trend = df.set_index('created_at').resample('H')['impact_score'].mean().reset_index()
+    # DYNAMIC RESAMPLING:
+    # 24H -> Hourly ('H')
+    # 3 Days -> Hourly ('H')
+    # 7 Days -> 4 Hours ('4H') or 6 Hours ('6H')
+    # 30+ Days -> Daily ('D')
+    
+    if days_to_load <= 3:
+        sample_rate = 'H'
+    elif days_to_load <= 7:
+        sample_rate = '4H'
+    else:
+        sample_rate = 'D'
+
+    df_trend = df.set_index('created_at').resample(sample_rate)['impact_score'].mean().reset_index()
+    
     fig_trend = go.Figure()
-    fig_trend.add_trace(go.Scatter(x=df_trend['created_at'], y=df_trend['impact_score'], mode='lines+markers', line=dict(color='#FFC107', width=4), marker=dict(size=8, color='#FFF', line=dict(width=2, color='#000')), name='Trust Score'))
+    fig_trend.add_trace(go.Scatter(
+        x=df_trend['created_at'], 
+        y=df_trend['impact_score'], 
+        mode='lines+markers', 
+        line=dict(color='#FFC107', width=4), 
+        marker=dict(size=6, color='#FFF', line=dict(width=2, color='#000')), 
+        name='Trust Score'
+    ))
+    
+    # Zones
     fig_trend.add_hrect(y0=-2.5, y1=-0.5, fillcolor="red", opacity=0.1, layer="below", line_width=0)
     fig_trend.add_hrect(y0=0.5, y1=2.5, fillcolor="green", opacity=0.1, layer="below", line_width=0)
-    fig_trend.update_layout(template="plotly_dark", yaxis_title="Net Trust Score", yaxis_range=[-3, 3], xaxis_title=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Rubik"), hovermode="x unified")
+    
+    fig_trend.update_layout(
+        template="plotly_dark", 
+        yaxis_title="Net Trust Score", 
+        yaxis_range=[-3, 3], 
+        xaxis_title=None, 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)', 
+        font=dict(family="Rubik"), 
+        hovermode="x unified"
+    )
     st.plotly_chart(fig_trend, use_container_width=True)
 
 # --- EVIDENCE LOG ---
