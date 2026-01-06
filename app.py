@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-# 1. Config & Setup
+# 1. CONFIGURATION
 st.set_page_config(
     page_title="KACANG KANTOI | The Memory Guard", 
     page_icon="🥜", 
@@ -16,7 +16,7 @@ st.set_page_config(
 )
 load_dotenv()
 
-# --- THE "TRUTH TELLER" DESIGN SYSTEM ---
+# 2. DESIGN SYSTEM (CSS)
 st.markdown("""
 <style>
     /* IMPORT FONTS: Rubik (Headlines) & Inter (Body) */
@@ -59,10 +59,7 @@ st.markdown("""
         font-family: 'Rubik', sans-serif; color: #FFF; font-size: 2.5rem !important; font-weight: 700;
     }
 
-    /* --- SIGNAL BOARD (Custom Container) --- */
-    .signal-box {
-        background-color: #111; border: 1px solid #333; padding: 15px; border-radius: 4px; margin-bottom: 10px;
-    }
+    /* --- SIGNAL BOARD --- */
     .signal-title {
         font-family: 'Rubik', sans-serif; color: #FFF; font-size: 1rem; font-weight: 700; 
         text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 5px;
@@ -101,18 +98,20 @@ st.markdown("""
         font-family: 'Inter', sans-serif; color: #888; font-size: 0.95rem; margin-bottom: 25px; margin-left: 22px; max-width: 650px;
     }
     
-    /* --- DATAFRAME & METHODOLOGY --- */
-    [data-testid="stDataFrame"] { font-family: 'Inter', sans-serif; }
+    /* --- METHODOLOGY --- */
     .methodology-header {
-        color: #FFC107; font-family: 'Rubik'; text-transform: uppercase; margin-bottom: 5px; font-size: 1rem;
+        color: #FFC107; font-family: 'Rubik'; text-transform: uppercase; margin-bottom: 5px; font-size: 1rem; margin-top: 20px;
+    }
+    .methodology-sub {
+        color: #FFF; font-family: 'Rubik'; font-weight: 700; margin-top: 10px; margin-bottom: 2px;
     }
     .methodology-text {
-        font-family: 'Inter'; color: #CCC; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;
+        font-family: 'Inter'; color: #CCC; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize connection
+# 3. INITIALIZE CONNECTION
 @st.cache_resource
 def init_connection():
     if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_KEY"):
@@ -121,11 +120,10 @@ def init_connection():
 
 supabase = init_connection()
 
-# --- DATA LOADING ---
+# 4. LOAD DATA
 def load_data():
     if not supabase: return pd.DataFrame()
     try:
-        # Fetch last 24 hours of data
         yesterday = (datetime.utcnow() - timedelta(hours=24)).isoformat()
         response = supabase.table("sentiment_logs") \
             .select("created_at, sentiment, archetype, topic, summary, impact_score, specific_trigger, is_3r") \
@@ -158,7 +156,7 @@ def load_intelligence():
 df = load_data()
 latest_intel = load_intelligence()
 
-# --- HERO SECTION: THE MANIFESTO ---
+# --- HERO SECTION ---
 st.markdown(f"""
 <div class="hero-card">
     <div class="hero-label">OUR MISSION</div>
@@ -175,12 +173,11 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- METRICS: THE REALITY CHECK ---
+# --- METRICS SECTION ---
 st.markdown("### THE REALITY CHECK")
 st.markdown("<div class='chart-caption'>The live scorecard from the last 24 hours. We audit every digital conversation to see if the government is passing or failing.</div>", unsafe_allow_html=True)
 
 if not df.empty:
-    # --- MATH LOGIC ---
     total_abs_impact = df['impact_score'].abs().sum()
     
     if total_abs_impact > 0:
@@ -191,7 +188,6 @@ if not df.empty:
         resistance_pct = 0
         consensus_pct = 0
     
-    # --- UI LAYOUT ---
     m1, m2, m3, m4 = st.columns(4)
     
     with m1:
@@ -199,14 +195,14 @@ if not df.empty:
             "Voices Scanned", 
             len(df), 
             delta="24h Volume", 
-            help="SAMPLE SIZE: The number of real, verified conversations (comments/videos) we analyzed today. We filter out bots to hear real people."
+            help="SAMPLE SIZE: The number of real, verified conversations (comments/videos) we analyzed today."
         )
     with m2:
         st.metric(
             "Approval Score", 
             f"{consensus_pct:.1f}%", 
             delta="Support",
-            help="THE MANDATE: How much political capital the government has right now. If this is above 50%, they are safe. If below, they are losing the room."
+            help="THE MANDATE: How much political capital the government has right now. If this is above 50%, they are safe."
         )
     with m3:
         st.metric(
@@ -214,10 +210,10 @@ if not df.empty:
             f"{resistance_pct:.1f}%", 
             delta="Friction", 
             delta_color="inverse",
-            help="RESISTANCE: This measures active anger. Not just people who disagree, but people who are fighting back. High numbers here mean policy failure."
+            help="RESISTANCE: This measures active anger. Not just people who disagree, but people who are fighting back."
         )
     with m4:
-        # NARRATIVE BOX (The synthesis)
+        # NARRATIVE BOX
         if latest_intel:
             content = latest_intel['content']
             headline = content.get('headline', 'System Stable')
@@ -225,7 +221,7 @@ if not df.empty:
             
             st.markdown(f"""
             <div class="narrative-box">
-                <div class="narrative-sub">MEMORY GUARD SAYS:</div>
+                <div class="narrative-sub">FORENSIC ANALYST NOTE</div>
                 <div class="narrative-header">{headline}</div>
                 <div class="narrative-text">"{narrative}"</div>
             </div>
@@ -233,31 +229,27 @@ if not df.empty:
         else:
             st.info("Initializing Analyst...")
 
-    # --- THE SIGNAL BOARD (Simplified) ---
+    # --- SIGNAL BOARD ---
     with st.expander("🔻 TAP TO SEE WHAT'S DRIVING THE NUMBERS", expanded=False):
         c1, c2, c3 = st.columns(3)
         
-        # 1. NEGATIVE ISSUES
         with c1:
             st.markdown('<div class="signal-title" style="color:#FF4560;">🔥 WHAT\'S BURNING (Issues)</div>', unsafe_allow_html=True)
             threats = df[df['impact_score'] < 0].groupby('specific_trigger')['impact_score'].sum().sort_values().head(5)
             for trigger, score in threats.items():
                 st.markdown(f'<div class="signal-item"><span>{trigger}</span><span class="signal-score-neg">{score:.1f}</span></div>', unsafe_allow_html=True)
 
-        # 2. POSITIVE ISSUES
         with c2:
             st.markdown('<div class="signal-title" style="color:#00E396;">🛡️ WHAT\'S WORKING (Wins)</div>', unsafe_allow_html=True)
             wins = df[df['impact_score'] > 0].groupby('specific_trigger')['impact_score'].sum().sort_values(ascending=False).head(5)
             for trigger, score in wins.items():
                 st.markdown(f'<div class="signal-item"><span>{trigger}</span><span class="signal-score-pos">+{score:.1f}</span></div>', unsafe_allow_html=True)
 
-        # 3. VIRAL TOPICS
         with c3:
             st.markdown('<div class="signal-title" style="color:#FFC107;">⚡ GOING VIRAL (Trending)</div>', unsafe_allow_html=True)
             velocity = df['specific_trigger'].value_counts().head(5)
             for trigger, count in velocity.items():
                 st.markdown(f'<div class="signal-item"><span>{trigger}</span><span style="color:#FFF;">{count} posts</span></div>', unsafe_allow_html=True)
-
 
 else:
     st.warning("Waiting for data stream...")
@@ -273,24 +265,14 @@ with col_charts_1:
         voice_data = df['archetype'].value_counts().reset_index()
         voice_data.columns = ['archetype', 'count']
         
-        # FORENSIC COLOR PALETTE
         color_map = {
-            "Digital Cynic": "#FFC107",           # Yellow
-            "Urban Reformist": "#FFFFFF",         # White
-            "Heartland Conservative": "#FFA500",  # Orange
-            "Economic Pragmatist": "#808080",     # Grey
+            "Digital Cynic": "#FFC107", "Urban Reformist": "#FFFFFF",
+            "Heartland Conservative": "#FFA500", "Economic Pragmatist": "#808080",
             "Unknown": "#333333"
         }
         
         fig_donut = px.pie(voice_data, values='count', names='archetype', hole=0.6, color='archetype', color_discrete_map=color_map)
-        fig_donut.update_layout(
-            template="plotly_dark", 
-            showlegend=True, 
-            legend=dict(orientation="h", y=-0.2, font=dict(family="Rubik", size=11)), 
-            margin=dict(t=0, b=0, l=0, r=0), 
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
+        fig_donut.update_layout(template="plotly_dark", showlegend=True, legend=dict(orientation="h", y=-0.2, font=dict(family="Rubik", size=11)), margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig_donut.update_traces(textinfo='percent', textfont=dict(family="Rubik", size=14))
         st.plotly_chart(fig_donut, use_container_width=True)
 
@@ -301,7 +283,6 @@ with col_charts_2:
         <b>Risk Radar.</b> This map shows you what to worry about.
         <br>🔴 <b>TOP LEFT (The Danger Zone):</b> Loud and Angry. These are the scandals.
         <br>🟢 <b>TOP RIGHT (The Safe Zone):</b> Loud and Happy. These are the wins.
-        <br>⚪ <b>BOTTOM (The Noise):</b> Quiet issues. Ignored for now.
     </div>
     """, unsafe_allow_html=True)
     
@@ -313,27 +294,12 @@ with col_charts_2:
         ).reset_index()
         
         fig_radar = px.scatter(
-            radar_data, 
-            x="volume", 
-            y="avg_sentiment", 
-            color="avg_sentiment", 
-            size="volume", 
-            text="trigger", 
-            color_continuous_scale="RdYlGn", 
-            range_color=[-2.5, 2.5], 
-            size_max=60
+            radar_data, x="volume", y="avg_sentiment", color="avg_sentiment", 
+            size="volume", text="trigger", color_continuous_scale="RdYlGn", 
+            range_color=[-2.5, 2.5], size_max=60
         )
         fig_radar.update_traces(textposition='top center', textfont=dict(family="Rubik", size=12, color="white"))
-        fig_radar.update_layout(
-            template="plotly_dark", 
-            xaxis_title="How Loud Is It?", 
-            yaxis_title="How Angry Are They?", 
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            showlegend=False, 
-            font=dict(family="Rubik")
-        )
-        # Add Quadrant Lines
+        fig_radar.update_layout(template="plotly_dark", xaxis_title="How Loud Is It?", yaxis_title="How Angry Are They?", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=False, font=dict(family="Rubik"))
         fig_radar.add_hline(y=0, line_width=1, line_dash="dash", line_color="#555")
         fig_radar.add_vline(x=radar_data['volume'].median(), line_width=1, line_dash="dash", line_color="#555")
         st.plotly_chart(fig_radar, use_container_width=True)
@@ -345,14 +311,9 @@ st.markdown("<div class='chart-caption'><b>Are things getting better or worse?</
 if not df.empty:
     df_trend = df.set_index('created_at').resample('H')['impact_score'].mean().reset_index()
     fig_trend = go.Figure()
-    
-    # Line
     fig_trend.add_trace(go.Scatter(x=df_trend['created_at'], y=df_trend['impact_score'], mode='lines+markers', line=dict(color='#FFC107', width=4), marker=dict(size=8, color='#FFF', line=dict(width=2, color='#000')), name='Trust Score'))
-    
-    # Background Zones
     fig_trend.add_hrect(y0=-2.5, y1=-0.5, fillcolor="red", opacity=0.1, layer="below", line_width=0)
     fig_trend.add_hrect(y0=0.5, y1=2.5, fillcolor="green", opacity=0.1, layer="below", line_width=0)
-
     fig_trend.update_layout(template="plotly_dark", yaxis_title="Net Trust Score", yaxis_range=[-3, 3], xaxis_title=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Rubik"), hovermode="x unified")
     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -363,28 +324,39 @@ if not df.empty:
     feed_df = df[['created_at', 'topic', 'specific_trigger', 'archetype', 'impact_score', 'summary']].copy()
     st.dataframe(feed_df, use_container_width=True, column_config={"created_at": st.column_config.DatetimeColumn("Timestamp", format="D MMM, HH:mm"), "impact_score": st.column_config.NumberColumn("Impact", format="%.2f")}, hide_index=True)
 
-# --- TRANSPARENCY REPORT (Methodology) ---
+# --- TRANSPARENCY REPORT ---
 with st.expander("📁 TRANSPARENCY REPORT: HOW WE WORK"):
     st.markdown("""
     <div class="methodology-text">
-        <h4 class="methodology-header">STEP 1: WE LISTEN (The Dragnet)</h4>
-        Most polls are fake or outdated. We don't ask people questions; we listen to what they already say. 
-        Our autonomous system scans TikTok, X, and Facebook for political conversations in <b>Malay, English, and Mandarin</b>. 
-        We pick up the slang ("Manglish", "Kelate") that traditional media ignores.
+        <h4 class="methodology-header">1. DATA SOURCE: TIKTOK INTELLIGENCE</h4>
+        We currently deploy a focused dragnet on <b>TikTok</b>, scanning Malaysian political discourse in Malay, English, and Mandarin. 
+        We target high-velocity content (viral videos) to capture the pulse of the youth and rural vote bank.
         <br><br>
-        
-        <h4 class="methodology-header">STEP 2: WE FILTER (The Logic)</h4>
-        Not everyone is a voter. We use AI to separate <b>Real Voices</b> from bots and trolls.
+
+        <h4 class="methodology-header">2. THE VOTER ARCHETYPES (Who We Track)</h4>
+        Not all noise is equal. We categorize voices into 4 buckets to weigh their political impact:
         <ul>
-            <li><b>Heartland Conservative:</b> We give extra weight to rural voices because they decide elections.</li>
-            <li><b>Digital Cynic:</b> We lower the volume on internet trolls who just want to fight.</li>
-            <li><b>3R Detection:</b> We instantly flag dangerous speech about Race, Religion, or Royalty.</li>
+            <li><b style="color:#FFA500">Heartland Conservative:</b> Rural, traditional, and religious voters. High political weight (The "Kingmakers").</li>
+            <li><b style="color:#808080">Economic Pragmatist:</b> Urban/Semi-urban voters focused on cost of living, business, and taxes. Swing voters.</li>
+            <li><b style="color:#FFFFFF">Urban Reformist:</b> Governance-focused voters who care about institutional reforms and civil liberties. Base support.</li>
+            <li><b style="color:#FFC107">Digital Cynic:</b> Trolls, satirists, and disengaged youth. High volume, but low political capital (Noise).</li>
+        </ul>
+
+        <h4 class="methodology-header">3. THE ISSUE DOMAINS (What We Track)</h4>
+        Every signal is sorted into one of 5 "Battlefield Buckets":
+        <ul>
+            <li><b>Economic Anxiety:</b> Prices, subsidies, taxes (SST), and survival issues.</li>
+            <li><b>Institutional Integrity:</b> Corruption, MACC cases, legal fairness, and reforms.</li>
+            <li><b>Identity Politics:</b> Race, Religion, and Royalty (3R) triggers.</li>
+            <li><b>Public Competency:</b> Infrastructure failures (roads/floods) and service delivery.</li>
+            <li><b>Political Maneuvering:</b> Elections, party hopping, and coalition drama.</li>
         </ul>
         
-        <h4 class="methodology-header">STEP 3: WE SCORE (The Reality Check)</h4>
-        We calculate a single number: the <b>Net Trust Score</b>.
-        <br>It’s simple math: <i>(Support - Anger) = Trust.</i>
-        <br>
-        <i>We don't predict the future. We just show you the receipts.</i>
+        <h4 class="methodology-header">4. NET TRUST SCORE (The Math)</h4>
+        How do we calculate the score?
+        <br><i>NTS = (Sentiment × Archetype Weight × Risk Multiplier)</i>
+        <br>A positive score means the government is building capital. A negative score means they are bleeding it.
+        <br><br>
+        <i>We do not predict the future. We audit the present.</i>
     </div>
     """, unsafe_allow_html=True)
